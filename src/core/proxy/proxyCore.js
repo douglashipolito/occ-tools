@@ -512,7 +512,7 @@ OCCProxy.prototype.getWidgetOptions = function (options, done) {
         options.widgetFiles.less.push(item.path);
       }
 
-      if(item.path.indexOf(`${dash}` + options.widgetName + `${dash}locales${dash}`) > -1) {
+      if(item.path.indexOf(`${dash}${options.widgetName}${dash}locales${dash}`) > -1) {
         var lang = path.basename(path.dirname(item.path));
         options.widgetFiles.locales[lang] = item.path;
       }
