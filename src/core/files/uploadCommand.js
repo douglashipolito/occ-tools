@@ -175,7 +175,7 @@ function doFileUpload(source, destination, settings, token, callback) {
       }
     },
     function(file, callback) {
-      fs.readFile(file,'utf8', function (error, file) {
+      fs.readFile(file, function (error, file) {
         return callback(error, new Buffer(file).toString('base64'));
       });
     },
