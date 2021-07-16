@@ -488,7 +488,7 @@ OCCProxy.prototype.transpileExtraRoute = function ({ source, fileSettings }, don
       libraryTarget: libraryTarget
     },
     externals: [
-      /^((\/file)|(\/oe-files)|(\/ccstorex?)|(?!\.{1}|occ-components|(.+:\\)|\/{1}[a-z-A-Z0-9_.]{1})).+?$/
+      /^((\/file)|(\/oe-files)|(\/ccstorex?)|(?!\.{1}|occ-components|(.+:\\|.+:\/)|\/{1}[a-z-A-Z0-9_.]{1})).+?$/
     ],
     module: {
       loaders: [{
