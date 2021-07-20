@@ -363,6 +363,17 @@ module.exports = function(revision, options, callback) {
           break;
         case 'email':
         case 'sse':
+          _changes[changeType].forEach(function(item) {
+            _deployJson.push({
+              operation: 'upload',
+              type: changeType,
+              id: item,
+              options: {
+                npm: true
+              }
+            });
+          });
+          break;
         case 'stack':
         case 'search':
           _changes[changeType].forEach(function(item) {

@@ -2,6 +2,16 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [2.0.0-beta.51] - 2021-07-20]
+
+### Fixed
+
+- SSE Upload, this process was not waiting until the server is up to upload the SSE causing problems while uploading.
+
+### Added
+
+- Options to SSE Commands in the generate deploy command.
+
 ## [2.0.0-beta.50] - 2021-07-16]
 
 ### Fixed
