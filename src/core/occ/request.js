@@ -89,8 +89,10 @@ function doRequest(config, token, callback) {
 
   request[config.method](config, function (err, httpResponse, body) {
     var responseBody;
+    var parsedBody = {};
 
     try {
+      parsedBody = JSON.parse(body);
       responseBody = config.body ? body : JSON.parse(body);
     } catch(_) {
       responseBody = body;
@@ -105,9 +107,9 @@ function doRequest(config, token, callback) {
       return callback(err);
     }
 
-    if (typeof responseBody === 'object' && responseBody.errorCode) {
+    if (parsedBody.errorCode) {
       winston.debug(body);
-      return callback(responseBody);
+      return callback(parsedBody);
     }
 
     if (httpResponse.statusCode === 204) {
