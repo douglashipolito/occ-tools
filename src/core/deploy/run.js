@@ -260,7 +260,7 @@ function uploadSse(callback, errors, operation) {
     errors.push({ type: operation.type, id: operation.id, error: err });
     callback();
   });
-  sse.upload(operation.id);
+  sse.upload(operation.id, operation.options);
 }
 
 function deleteSse(callback, errors, operation) {
@@ -272,7 +272,7 @@ function deleteSse(callback, errors, operation) {
     errors.push({ type: operation.type, id: operation.id, error: err });
     callback();
   });
-  sse.delete(operation.id);
+  sse.delete(operation.id, operation.options);
 }
 
 function restartSse(callback, errors, operation) {
@@ -284,7 +284,7 @@ function restartSse(callback, errors, operation) {
     errors.push({ type: operation.type, id: operation.id, error: err });
     callback();
   });
-  sse.restart();
+  sse.restart(operation.options);
 }
 
 function uploadSseVariables(callback, errors, operation) {

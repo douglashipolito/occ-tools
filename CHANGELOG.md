@@ -7,6 +7,11 @@ This project must adhere to [this](https://github.com/olivierlacan/keep-a-change
 ### Fixed
 
 - Wrong paths on Windows system on the upload files command.
+- SSE Upload, this process was not waiting until the server is up to upload the SSE causing problems while uploading.
+
+### Added
+
+- Options to SSE Commands in the generate deploy command.
 
 ## [2.0.0-beta.50] - 2021-07-16]
 

@@ -110,8 +110,8 @@ function uploadSSE(name, opts, callback) {
    * Check if server is up and push SSE Configs
    */
   var pushSSEConfigs = function(callback) {
-    var time = opts.delay;
-    var maxAttempts = opts.times;
+    var time = opts.delay || 15000;
+    var maxAttempts = opts.times || 20;
     var attempts = 1;
 
     winston.info('Checking if the SSE server is up...');
@@ -126,7 +126,7 @@ function uploadSSE(name, opts, callback) {
 
       winston.info('Pushing SSE Configs...');
 
-      self._occ_sse.request(options, function(error, body) {
+      self._occ_sse.request(options, function(error, body, response) {
         // no content return, SSE server is up
         if(!error && body === '') {
           done();
