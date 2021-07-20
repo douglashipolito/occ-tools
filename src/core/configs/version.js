@@ -1,8 +1,8 @@
 const path = require('path');
-const fs = require('fs-extra');
 const winston = require('winston');
-const git = require('isomorphic-git');
 const { logBox } = require('console-log-it');
+const config = require('../config');
+const projectSettings = config.projectSettings || {};
 
 function wait(delay) {
   return new Promise(resolve => {
@@ -12,27 +12,24 @@ function wait(delay) {
 
 module.exports = async function () {
   try {
-    const baseOccToolsPath = path.join(__dirname, '..', '..', '..');
-    const hash = await git.resolveRef({ fs, dir: baseOccToolsPath, ref: 'oct-cli' });
-    const packageJsonResponse = await git.readObject({
-      fs,
-      dir: baseOccToolsPath,
-      oid: hash,
-      filepath: 'package.json'
-    })
-    const packageJsonVersion = JSON.parse(Buffer.from(packageJsonResponse.object).toString('utf8')).version;
-    const currentVersion = require(path.join(baseOccToolsPath, 'package.json')).version;
+    if(projectSettings['occ-tools-version']) {
+      const baseOccToolsPath = path.join(__dirname, '..', '..', '..');
+      const projectExpectedVersion = projectSettings['occ-tools-version'];
+      const currentVersion = require(path.join(baseOccToolsPath, 'package.json')).version;
 
-    if(currentVersion < packageJsonVersion) {
-      logBox({ color: 'yellow', indent: 4, bufferLines: true })(
-        'A New OCC TOOLS version is available!',
-        '',
-        { color: 'red', message: `Your version: ${currentVersion}` },
-        { color: 'green', message: `Newer version: ${packageJsonVersion}`},
-        '',
-        { color: 'blue', message: 'Please run git pull inside the occ-tools and npm install' },
-        { color: 'magenta', message: 'Check the changelog in the occ-tools repository.' }
-      );
+      if(currentVersion !== projectExpectedVersion) {
+        logBox({ color: 'yellow', indent: 4, bufferLines: true })(
+          'Your occ-tools is not matching the required version for the Project!',
+          '',
+          { color: 'red', message: `Your version: ${currentVersion}` },
+          { color: 'green', message: `Expected version: ${projectExpectedVersion}`},
+          '',
+          { color: 'blue', message: 'Please run git pull inside the occ-tools folder and run npm install' },
+          { color: 'magenta', message: 'Check the changelog in the occ-tools repository.' }
+        );
+
+        await wait(3000);
+      }
     }
   } catch(error) {
     winston.error(error);

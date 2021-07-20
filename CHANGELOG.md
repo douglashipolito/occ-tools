@@ -21,6 +21,7 @@ This project must adhere to [this](https://github.com/olivierlacan/keep-a-change
 - Removed all warnings of the app
 - Fixed issues with cookies used to download images
 - Fixed site settings upgrade
+- Version check. It will now check the version defined in at the project level, if it's not matching, then a message will be displayed.
 
 ### Removed
 - Removed github login with user and pass (deprecated by github)
