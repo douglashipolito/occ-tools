@@ -141,7 +141,14 @@ function generateBundleTempFile({ source, fileSettings }, callback) {
 }
 
 function getFileSetting(source) {
-  return projectSettingsFiles.find(file => path.join(_config.dir.project_root, file.path) === source) || {};
+  return projectSettingsFiles.find(file => {
+    const projectSettingfilePath = path.join(_config.dir.project_root, file.path);
+    const normalizedProjectSettingPath = path.normalize(projectSettingfilePath);
+    const normalizedCurrentSource = path.normalize(source);
+
+    return normalizedProjectSettingPath === normalizedCurrentSource;
+  })
+  || {};
 }
 
 /**
@@ -313,7 +320,6 @@ function cssBundle(options, done) {
  * @param {Function} callback the callback function
  */
 module.exports = function (globPattern, settings, callback) {
-
   async.waterfall([
     getFiles.bind(this, globPattern),
     uploadFiles.bind(this, settings)

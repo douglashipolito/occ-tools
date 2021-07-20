@@ -2,6 +2,12 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [2.0.0-beta.51] - 2021-07-20]
+
+### Fixed
+
+- Wrong paths on Windows system on the upload files command.
+
 ## [2.0.0-beta.50] - 2021-07-16]
 
 ### Fixed
