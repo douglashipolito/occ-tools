@@ -6,6 +6,7 @@ This project must adhere to [this](https://github.com/olivierlacan/keep-a-change
 
 ### Fixed
 
+- Wrong paths on Windows system on the upload files command.
 - SSE Upload, this process was not waiting until the server is up to upload the SSE causing problems while uploading.
 
 ### Added
