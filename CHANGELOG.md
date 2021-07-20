@@ -2,6 +2,30 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [2.0.0-beta.52] - 2021-07-20]
+
+### Added
+- New commands to download/upload types (order, item, shopper, product)
+- Allow upload of es5 app-level
+- Proxy support to es5 app-level
+- Download widget locales
+- Download global locales
+- Add support to additional styles on themes
+- Allow download of all emails on a single command
+- Add command to download app-level
+
+### Fixed
+- Fixed widget/element download
+- Increased github limit to download files
+- Fixed issue when transpiling app-levels on proxy
+- Removed all warnings of the app
+- Fixed issues with cookies used to download images
+- Fixed site settings upgrade
+
+### Removed
+- Removed github login with user and pass (deprecated by github)
+- Removed bugsnag support
+
 ## [2.0.0-beta.51] - 2021-07-20]
 
 ### Fixed

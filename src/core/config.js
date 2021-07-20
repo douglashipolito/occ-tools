@@ -1,6 +1,7 @@
 var path = require('path');
 var fs = require('fs-extra');
 var os = require('os');
+var winston = require('winston');
 var occToolsConfigsCore = new (require('./configs'));
 var configsDir = occToolsConfigsCore.getConfigsDir();
 var configsFilePath = occToolsConfigsCore.getConfigsFilePath();
@@ -116,7 +117,13 @@ var databaseDir = path.join(configsDir, 'database');
 fs.ensureDirSync(databaseDir);
 
 // Defines the assets version, this can be used in the store to control the cache
-var assetsVersion = process.env.ASSETS_VERSION || require(path.join(configsData.projects.current.path, 'package.json')).version;
+var assetsVersion = '1.0.0';
+try {
+  assetsVersion = process.env.ASSETS_VERSION || require(path.join(configsData.projects.current.path, 'package.json')).version;
+} catch(error) {
+  winston.debug(`No package.json found at ${configsData.projects.current.path}`);
+}
+
 
 var _configDescriptor = {
   project_name: configsData.projects.current.name,
@@ -150,6 +157,7 @@ var _configDescriptor = {
     search_root: path.join(configsData.projects.current.path, 'search'),
     server_side_root: path.join(configsData.projects.current.path, 'server-side-extensions'),
     storefront_dir_name: storefrontDir,
+    types_root: path.join(configsData.projects.current.path, 'types'),
     mocks: path.join(absoluteStorefrontDir, mocksDirName),
     instanceDefinitions: instanceDefinitionsDir,
     occToolsProject: path.join(configsData.projects.current.path, 'occ-tools.project.json'),
@@ -161,6 +169,8 @@ var _configDescriptor = {
     name: configsData.projects.current.theme.name,
     id: configsData.projects.current.theme.id
   },
+  locales: configsData.projects.current.locales || ['en'],
+  defaultLocale: configsData.projects.current.defaultLocale || 'en',
   environments: occToolsConfigsCore.getCurrentEnvironments(),
   environment: {
     current: configsData.projects.current.env,
@@ -225,9 +235,6 @@ var _configDescriptor = {
 };
 
 _configDescriptor.github = {
-  username: configsData.github.username,
-  password: configsData.github.password,
-  type: configsData.github.type,
   token: configsData.github.token
 };
 
