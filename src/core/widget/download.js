@@ -1,172 +1,280 @@
 'use strict';
 
-var util = require('util');
-var path = require('path');
-var fs = require('fs-extra');
-var async = require('async');
-var request = require('request');
-var winston = require('winston');
-var _configs = require('../config');
-var widgetsInfo = require('./info');
+const path = require('path');
+const fs = require('fs-extra');
+const winston = require('winston');
+const _configs = require('../config');
+const widgetsInfo = require('./info');
+const { fetchGlobalElements, downloadWidgetElements } = require('./downloadWidgetElement');
+
+const getWidgetPath = (settings, widgetInfo) => {
+  const folder = settings && settings.dest ? settings.dest : widgetInfo.folder;
+  return path.join(_configs.dir.project_root, 'widgets', folder, widgetInfo.item.widgetType);
+};
 
 /**
  * Download the widget template file.
- * @param  {Object}   widgetInfo The widget info received from OCC.
- * @param  {Function} callback   The fn to be executed after download.
+ * @param  {Object} occ The occ request.
+ * @param  {Object} widgetInfo The widget info received from OCC.
+ * @param  {Object} settings   The setting object.
  */
-function downloadTemplate(widgetInfo, settings, callback) {
-  var self = this;
-
+const downloadTemplate = async (occ, widgetInfo, settings) => {
   winston.info('Downloading template for %s...', widgetInfo.item.widgetType);
-  var describeCodePath = util.format('widgets/%s/code', widgetInfo.item.instances[0].id);
-  self._occ.request(describeCodePath, function(err, file) {
-    if (err) return callback(err);
+  const templateDir = path.join(getWidgetPath(settings, widgetInfo), 'templates');
+  const templateFilePath = path.join(templateDir, 'display.template');
+  const describeCodePath =`widgets/${widgetInfo.item.instances[0].id}/code`;
 
-    var templateDir;
-    if (settings && settings.dest) {
-      templateDir = path.join(_configs.dir.project_root, 'widgets', settings.dest, widgetInfo.item.widgetType, 'templates');
-    } else {
-      templateDir = path.join(_configs.dir.project_root, 'widgets', widgetInfo.folder, widgetInfo.item.widgetType, 'templates');
-    }
-    winston.debug('Writing %s template in %s', widgetInfo.item.widgetType, templateDir);
-    var templateFilePath = path.join(templateDir, 'display.template');
-    fs.outputFile(templateFilePath, file.source, callback);
-  });
-}
+  const file = await occ.promisedRequest(describeCodePath);
+  winston.debug('Writing %s template in %s', widgetInfo.item.widgetType, templateDir);
+  fs.outputFileSync(templateFilePath, file.source);
+};
 
 /**
  * Download the widget LESS file.
- * @param  {Object}   widgetInfo The widget info received from OCC.
- * @param  {Function} callback   The fn to be executed after download.
+ * @param  {Object} occ The occ request.
+ * @param  {Object} widgetInfo The widget info received from OCC.
+ * @param  {Object} settings   The setting object.
  */
-function downloadLess(widgetInfo, settings, callback) {
-  var self = this;
+const downloadLess = async (occ, widgetInfo, settings) => {
   winston.info('Downloading LESS for %s...', widgetInfo.item.widgetType);
-  var describeLessPath = util.format('widgets/%s/less', widgetInfo.item.instances[0].id);
-  self._occ.request(describeLessPath, function(err, file) {
-    if (err) return callback(err);
-    var lessDir;
-    if (settings && settings.dest) {
-      lessDir = path.join(_configs.dir.project_root, 'widgets', settings.dest, widgetInfo.item.widgetType, 'less');
-    } else {
-      lessDir = path.join(_configs.dir.project_root, 'widgets', widgetInfo.folder, widgetInfo.item.widgetType, 'less');
-    }
-    winston.debug('Writing %s LESS in %s', widgetInfo.item.widgetType, lessDir);
-    var lessFilePath = path.join(lessDir, 'widget.less');
-    fs.outputFile(lessFilePath, file.source, callback);
-  });
-}
+  const lessDir = path.join(getWidgetPath(settings, widgetInfo), 'less');
+  const lessFilePath = path.join(lessDir, 'widget.less');
+  const url = `widgets/${widgetInfo.item.instances[0].id}/less`;
+
+  const file = await occ.promisedRequest(url);
+  winston.debug('Writing %s LESS in %s', widgetInfo.item.widgetType, lessDir);
+  fs.outputFileSync(lessFilePath, file.source);
+};
 
 /**
  * Download all widget js files.
- * @param  {Object}   widgetInfo The widget info received from OCC.
- * @param  {Function} callback   The fn to be executed after download.
+ * @param  {Object} occ The occ request.
+ * @param  {Object} widgetInfo The widget info received from OCC.
+ * @param  {Object} settings   The setting object.
  */
-function downloadAllJs(widgetInfo, settings, callback) {
-  var self = this;
+const downloadAllJs = async (occ, widgetInfo, settings) => {
+  if (widgetInfo.folder === 'oracle') return;
   winston.info('Downloading %s js files...', widgetInfo.item.widgetType);
-  var describeJsPath = util.format('widgetDescriptors/%s/javascript', widgetInfo.item.id);
-  self._occ.request(describeJsPath, function(err, data) {
-    if (err) return callback(err);
-    async.each(data.jsFiles, function(jsFile, callback) {
-      async.waterfall([
-        function(callback) {
-          self._auth.getToken('file', callback);
-        },
-        function(fileToken, callback) {
-          var jar = request.jar();
-          var cookie = request.cookie(fileToken);
-          jar.setCookie(cookie, jsFile.url);
-          request({url: jsFile.url, jar: jar}, function(err, response, body) {
-            return err ? callback(err) : callback(null, body);
-          });
-        },
-        function(data, callback) {
-          var jsPath;
-          if (settings && settings.dest) {
-            jsPath = path.join(_configs.dir.project_root, 'widgets', settings.dest, widgetInfo.item.widgetType, 'js');
-          } else {
-            jsPath = path.join(_configs.dir.project_root, 'widgets', widgetInfo.folder, widgetInfo.item.widgetType, 'js');
-          }
-          fs.outputFile(path.join(jsPath, jsFile.name), data, callback);
-        }
-      ], callback);
-    }, callback);
+  const describeJsPath = `widgetDescriptors/${widgetInfo.item.id}/javascript`;
+  var jsPath = path.join(getWidgetPath(settings, widgetInfo), 'js');
+
+  const data = await occ.promisedRequest(describeJsPath);
+  const promises = data.jsFiles.map(async (jsFile) => {
+    await fs.ensureDir(jsPath);
+    const options = {
+      url: jsFile.url,
+      method: 'get',
+      download: path.join(jsPath, jsFile.name),
+    };
+    return occ.promisedRequest(options);
   });
-}
+  return Promise.all(promises);
+};
 
 /**
  * Writes the widget descriptor in widget folder.
- * @param  {Object}   widgetInfo The widget info received from OCC.
- * @param  {Function} callback   The fn to executed after process.
+ * @param  {Object} occ The occ request.
+ * @param  {Object} widgetInfo The widget info received from OCC.
+ * @param  {Object} settings   The setting object.
  */
-function writeDescriptor(widgetInfo, settings, callback) {
-  winston.info('Writing %s widget.json...', widgetInfo.item.widgetType);
-  var widgetPath;
-  if (settings && settings.dest) {
-    widgetPath = path.join(_configs.dir.project_root, 'widgets', settings.dest, widgetInfo.item.widgetType);
+const writeDescriptor = async (occ , widgetInfo, settings) => {
+  const widget = widgetInfo.item;
+  winston.info('Writing %s widget.json...', widget.widgetType);
+  const widgetPath = getWidgetPath(settings, widgetInfo);
+  const configPath = path.join(widgetPath, 'widget.json');
+
+  if (widgetInfo.folder != 'oracle') {
+    const options = {
+      api: `widgetDescriptors/${widgetInfo.item.repositoryId}/metadata`,
+      method: 'get',
+      headers: {
+        'X-CCAsset-Language': 'en'
+      }
+    };
+    const response = await occ.promisedRequest(options);
+    const config = {
+      version: widget.latestVersion,
+      source: widget.source,
+      global: widget.global,
+      javascript: widget.entrypoint,
+      i18nresources: widget.i18nresources,
+      widgetFamily: widget.widgetType,
+      widgetType: widget.widgetType,
+      ...response.metadata,
+    };
+
+    const configContent = JSON.stringify(config, null, 2);
+    fs.outputFileSync(configPath, configContent);
   } else {
-    widgetPath = path.join(_configs.dir.project_root, 'widgets', widgetInfo.folder, widgetInfo.item.widgetType);
+    const widget = widgetInfo.item;
+    const metadata = {};
+    const baseKeys = ['widgetType', 'version', 'displayName'];
+    baseKeys.forEach(key => {
+      metadata[key] = widget[key];
+    });
+
+    metadata.elementized = !!widget.layouts.length;
+    fs.outputFileSync(configPath, JSON.stringify(metadata, null, 2));
   }
-  fs.outputFile(path.join(widgetPath, 'widget.json'), JSON.stringify(widgetInfo.item, null, '  '), callback);
-}
+};
+
+/**
+ * Download widget locales.
+ * @param  {Object} occ The occ request.
+ * @param  {Object} widgetInfo The widget info received from OCC.
+ * @param  {Object} settings   The setting object.
+ */
+const downloadLocales = (occ, widgetInfo, settings) => {
+  if (widgetInfo.folder === 'oracle') return;
+  const widget = widgetInfo.item.widgetType;
+  const widgetId =  widgetInfo.item.repositoryId;
+  const localesPath = path.join(getWidgetPath(settings, widgetInfo), 'locales');
+  winston.info('Downloading %s locales files...', widget);
+
+  const promises = settings.locales.map(async (locale) => {
+    const options = {
+      api: `widgetDescriptors/${widgetId}/locale/${locale}`,
+      method: 'get',
+      headers: {
+        'X-CCAsset-Language': locale,
+      },
+    };
+    const data = await occ.promisedRequest(options);
+    const localePath = path.join(localesPath, locale, `ns.${widgetInfo.item.i18nresources}.json`);
+
+    if (!data) {
+      winston.warn(`Locale ${locale} not find for widget ${widget}`);
+    } else {
+      const localeJson = JSON.stringify(data.localeData, null, 2);
+      fs.outputFileSync(localePath, localeJson);
+    }
+  });
+
+  return Promise.all(promises);
+};
+
+const downloadConfigLocales = async (occ, widget, widgetId, configPath, settings) => {
+  const promises = settings.locales.map(async (locale) => {
+    const options = {
+      api: `widgetDescriptors/${widgetId}/metadata/config/locale/${locale}`,
+      method: 'get',
+      headers: {
+        'X-CCAsset-Language': locale,
+      },
+    };
+    const data = await occ.promisedRequest(options);
+    const localePath = path.join(configPath, 'locales', `${locale}.json`);
+
+    if (!data) {
+      winston.warn(`Config locale ${locale} not find for widget ${widget}`);
+    } else {
+      const localeJson = JSON.stringify(data.localeData, null, 2);
+      fs.outputFileSync(localePath, localeJson);
+    }
+  });
+
+  return Promise.all(promises);
+};
+
+/**
+ * Writes the widget descriptor in widget folder.
+ * @param  {Object} occ The occ request.
+ * @param  {Object} widgetInfo The widget info received from OCC.
+ * @param  {Object} settings   The setting object.
+ */
+const downloadConfig = async (occ, widgetInfo, settings) => {
+  if (widgetInfo.folder === 'oracle') return;
+  const widget = widgetInfo.item.widgetType;
+  const widgetId =  widgetInfo.item.repositoryId;
+  const configUrl = `widgetDescriptors/${widgetId}/metadata/config`;
+  const configPath = path.join(getWidgetPath(settings, widgetInfo), 'config');
+  winston.info('Downloading config for %s...', widget);
+
+  const response = await occ.promisedRequest(configUrl);
+  fs.outputFileSync(path.join(configPath, 'config.json'), JSON.stringify(response.metadata, null, 2));
+
+  return downloadConfigLocales(occ, widget, widgetId, configPath, settings);
+};
 
 /**
  * Download a single widget.
- * @param  {Object}   widgetInfo The widget info received from OCC.
- * @param  {Function} callback   The fn to executed efter download.
+ * @param  {Object} widgetInfo The widget info received from OCC.
  */
-function downloadWidget(widgetInfo, settings, callback) {
-  var self = this;
+const downloadWidget = (occ, widgetInfo, globalElementTags, widgetInstances, settings) => {
   winston.info('Downloading widget %s...', widgetInfo.item.widgetType);
   if (widgetInfo.item.instances.length <= 0) {
     winston.warn('No instances available for widget %s.', widgetInfo.item.widgetType);
-    return callback();
+    return;
   }
-  async.parallel([
-    function(callback) {
-      downloadTemplate.call(self, widgetInfo, settings, callback);
-    },
-    function(callback) {
-      downloadLess.call(self, widgetInfo, settings, callback);
-    },
-    function(callback) {
-      if (widgetInfo.folder === 'oracle') return callback();
-      downloadAllJs.call(self, widgetInfo, settings, callback);
-    },
-    function(callback) {
-      writeDescriptor.call(self, widgetInfo, settings, callback);
-    }
-  ], callback);
-}
+
+  const promises = [
+    downloadTemplate(occ, widgetInfo, settings),
+    downloadLess(occ, widgetInfo, settings),
+    downloadAllJs(occ, widgetInfo, settings),
+    writeDescriptor(occ, widgetInfo, settings),
+    downloadLocales(occ, widgetInfo, settings),
+    downloadConfig(occ, widgetInfo, settings),
+    downloadWidgetElements(occ, widgetInfo, globalElementTags, widgetInstances, settings)
+  ];
+
+  return Promise.all(promises);
+};
 
 /**
  * Download the list of widgets passed by argument.
- * @param  {Array}   widgetsInfo The list of widgets info received from OCC.
- * @param  {Function} callback    The fn to be executed after download.
+ * @param {Object} occ The requestor.
+ * @param {Array} widgets The list of widgets info received from OCC.
+ * @param {Array} globalElementTags The list global element tags
+ * @param {Array} widgetInstances The list of widgets instances.
+ * @param {Array} settings The settings to downlaod widget.
  */
-function downloadWidgets(widgetsInfo, settings, callback) {
-  var self = this;
-  var widgetsCount = widgetsInfo.length;
-  var currentCount = 0;
-  var dw = function(widgetInfo, callback) {
-    winston.info('Widget %d of %d', ++currentCount, widgetsCount);
-    downloadWidget.call(self, widgetInfo, settings, callback);
+const downloadWidgets = (occ, widgets, globalElementTags, widgetInstances, settings) => {
+  const widgetsCount = widgets.length;
+  const promises = widgets.map(async (widgetInfo, index) => {
+    winston.info('Widget %d of %d', index+1, widgetsCount);
+    return downloadWidget(occ, widgetInfo, globalElementTags, widgetInstances, settings);
+  });
+
+  return Promise.all(promises);
+};
+
+const fetchWidgetInstances = async (occ, widgets) => {
+  winston.info('Fetching widget instances...');
+  const instances = widgets.map(widget => widget.item.instances);
+  const allInstances = [].concat.apply([], instances);
+  const allInstanceIds = allInstances.map(instance => instance.repositoryId);
+
+  const promises = allInstanceIds.map(instance => occ.promisedRequest(`widgets/${instance}`));
+
+  return Promise.all(promises);
+};
+
+module.exports = async function (widgetId, settings, callback) {
+  const self = this;
+
+  settings.locales = settings.locales
+    ? settings.locales.split(',')
+    : _configs.locales;
+
+  const fetchWidgetsInfo = () => {
+    return new Promise((resolve, reject) => {
+      widgetsInfo.call(self, widgetId, (error, widgetInfo) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(widgetInfo);
+        }
+      });
+    });
   };
 
-  async.each(widgetsInfo, dw, callback);
-}
-
-module.exports = function (widgetId, settings, callback) {
-  var self = this;
-  var fetchWidgetsInfo = function(callback) {
-    widgetsInfo.call(self, widgetId, callback);
-  };
-
-  async.waterfall([
-    fetchWidgetsInfo.bind(self),
-    function (widgetsInfo, callback) {
-      downloadWidgets.call(self, widgetsInfo, settings, callback);
-    }
-  ], callback);
+  try {
+    const widgets = await fetchWidgetsInfo();
+    const globalElements = await fetchGlobalElements(self._occ);
+    const instances = await fetchWidgetInstances(self._occ, widgets);
+    await downloadWidgets(self._occ, widgets, globalElements, instances, settings);
+    callback();
+  } catch(error) {
+    callback(error);
+  }
 };

@@ -154,19 +154,15 @@ OccTools.prototype.init = async function (options, args, callback) {
 };
 
 OccTools.prototype.fini = function (subcmd, error, callback) {
-  var skipErrors = ['NoCommand', 'UnknownCommand'];
+  const skipErrors = ['NoCommand'];
 
   if (typeof error === 'object' && !skipErrors.includes(error.code)) {
-    if (error.message) {
-      winston.error(error.message);
-    } else {
-      winston.error(error);
-    }
+    error.message ? winston.error(error.message) : winston.error(error);
   } else if (typeof error === 'string') {
     winston.error(error);
   }
 
-  callback(error, subcmd);
+  callback(subcmd);
 };
 
 OccTools.prototype.do_env = function(subcmd, opts, args, callback) {
