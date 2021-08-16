@@ -327,6 +327,14 @@ Upload.prototype.do_files = function(subcmd, opts, args, callback) {
   });
 
   var self = this;
+
+  if(opts.folder) {
+    winston.warn('You are using the option --folder and this will override the default files upload\'s behavior!');
+    winston.warn('occ-tools should auto-detect the remote folder based on the local path...');
+    winston.warn('Your file will be uploaded, make sure you are running it correctly.');
+    console.log('');
+  }
+
   files.uploadCommand(filePath, opts, function(cb) {
     self.do_appLevel('appLevel', {}, [], cb);
   });

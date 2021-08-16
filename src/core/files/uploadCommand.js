@@ -91,7 +91,7 @@ function generateFilePathMapping(filePath, settingsFolder) {
     thirdparty = false;
     remotePath = `/file/${basePath}`;
   } else {
-    remotePath = basePath.replace(baseFolder, '');
+    remotePath = basePath.replace(baseFolder, '').replace(/[\\]{1,2}/g, '/');
   }
 
   const remote = util.format(
@@ -124,8 +124,8 @@ function uploadFiles(settings, fileList, callback) {
     function (file, cb) {
       var destination = generateFilePathMapping(file, settings.folder);
 
-      winston.info('Uploading file: "%s"', path.basename(file));
-      winston.info('OCC Folder: "%s"', destination.folder);
+      winston.info('Uploading file: "%s"', path.relative(_config.dir.project_root, file));
+      winston.info('Folder on OCC: "%s"', destination.folder);
       winston.info('Remote Path: "%s"', destination.remote);
       winston.info('');
 
