@@ -42,6 +42,72 @@ function getFiles(globPattern, callback) {
   new Glob(path.basename(globPattern), options, globCallback);
 }
 
+function generateFilesFolderPath(filesList) {
+  filesList = [
+    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/libs/custom-elements-solidjs/index-legacy.js',
+    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/libs/custom-elements-solidjs/index.js',
+    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/libs/custom-elements-solidjs/polyfills-legacy.js',
+    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/libs/custom-elements-solidjs/vendor-legacy.js',
+    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/libs/custom-elements-solidjs/vendor.js',
+    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/img/16-9-image.jpg',
+    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/msi-files/json/analytics/main.json',
+    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/google9577bcf712e4c804.html',
+    '/home/msiocc/Sites/occ-platform/storefront/files/general/docs/samplespreadsheet.csv'
+  ];
+
+  const assetFilesPath = _config.dir.assetFilesPath;
+
+  return filesList.map(file => {
+    const basePath = path.relative(assetFilesPath, file);
+    let folder = path.dirname(basePath);
+    const baseFolder = basePath.split(path.sep)[0];
+    let thirdparty = true;
+
+    if(baseFolder !== 'thirdparty') {
+      folder = baseFolder;
+      thirdparty = false;
+    }
+
+    return {
+      filePath: file,
+      folder,
+      thirdparty
+    }
+  });
+}
+
+function generateFilePathMapping(filePath, settingsFolder) {
+  const assetFilesPath = _config.dir.assetFilesPath;
+
+  const basePath = path.relative(assetFilesPath, filePath);
+  let folder = settingsFolder ? util.format('/%s/%s', settingsFolder, path.basename(filePath)) : path.dirname(basePath);
+
+  const baseFolder = basePath.split(path.sep)[0];
+  let thirdparty = true;
+  let remotePath = '';
+
+  if(baseFolder !== 'thirdparty') {
+    folder = baseFolder;
+    thirdparty = false;
+    remotePath = `/file/${basePath}`;
+  } else {
+    remotePath = basePath.replace(baseFolder, '');
+  }
+
+  const remote = util.format(
+      '%s%s',
+      _config.environment.details.dns,
+      remotePath
+  );
+
+  return {
+    filePath,
+    folder,
+    thirdparty,
+    remote
+  }
+}
+
 /**
  * Upload a file list to OCC in parallel
  *
@@ -51,12 +117,18 @@ function getFiles(globPattern, callback) {
  */
 function uploadFiles(settings, fileList, callback) {
   var self = this;
+
   async.eachLimit(
     fileList,
     PARALLEL_UPLOADS,
     function (file, cb) {
-      winston.info('Uploading file %s...', path.basename(file));
-      var destination = util.format('/%s/%s', settings.folder, path.basename(file));
+      var destination = generateFilePathMapping(file, settings.folder);
+
+      winston.info('Uploading file: "%s"', path.basename(file));
+      winston.info('OCC Folder: "%s"', destination.folder);
+      winston.info('Remote Path: "%s"', destination.remote);
+      winston.info('');
+
       async.waterfall([
         initFileUpload.bind(self, destination, settings),
         doFileUpload.bind(self, file, destination, settings)

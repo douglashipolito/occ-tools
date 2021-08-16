@@ -304,7 +304,7 @@ Upload.prototype.do_files = function(subcmd, opts, args, callback) {
   var filePath = args[0];
   var allowedFolders = ['thirdparty', 'crashreports', 'general', 'collections', 'products'];
 
-  if (!allowedFolders.includes(opts.folder) && !opts.folder.startsWith('thirdparty/')) {
+  if (opts.folder && !allowedFolders.includes(opts.folder) && !opts.folder.startsWith('thirdparty/')) {
     return callback(util.format(
       'The supplied folder must be one of the following values: [%s]',
       allowedFolders.join(', ')
@@ -344,8 +344,7 @@ Upload.prototype.do_files.options = [
     names: ['folder', 'f'],
     helpArg: '[folder]',
     type: 'string',
-    default: 'general',
-    help: '(Optional) Folder to upload: thirdparty, crashreports, general (default), collections, products.'
+    help: '(Optional) Folder to upload: thirdparty, crashreports, general, collections, products.'
   },
   {
     names: ['no-minify', 'nm'],

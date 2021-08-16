@@ -116,6 +116,9 @@ if(envDetailsFromProject) {
 var databaseDir = path.join(configsDir, 'database');
 fs.ensureDirSync(databaseDir);
 
+// /files path
+var assetFilesPath = path.join(absoluteStorefrontDir, 'files');
+
 // Defines the assets version, this can be used in the store to control the cache
 var assetsVersion = '1.0.0';
 try {
@@ -123,7 +126,6 @@ try {
 } catch(error) {
   winston.debug(`No package.json found at ${configsData.projects.current.path}`);
 }
-
 
 var _configDescriptor = {
   project_name: configsData.projects.current.name,
@@ -163,7 +165,8 @@ var _configDescriptor = {
     occToolsProject: path.join(configsData.projects.current.path, 'occ-tools.project.json'),
     transpiled: path.join(absoluteStorefrontDir, '.occ-transpiled'),
     occComponents: path.join(absoluteStorefrontDir, '.occ-components'),
-    databaseDir: databaseDir
+    databaseDir: databaseDir,
+    assetFilesPath: assetFilesPath
   },
   theme: {
     name: configsData.projects.current.theme.name,
@@ -231,7 +234,11 @@ var _configDescriptor = {
   OCC_DEFAULT_LIMIT: 250,
   currentIP: currentIP,
   projectSettings: projectSettings,
-  assetsVersion: `${assetsVersion}${new Date().getTime()}`
+  assetsVersion: `${assetsVersion}${new Date().getTime()}`,
+  occRemoteFilesFolders: {
+    [path.join(assetFilesPath, 'general')]: 'general',
+    [path.join(assetFilesPath, 'thirdparty')]: 'thirdparty',
+  }
 };
 
 _configDescriptor.github = {
