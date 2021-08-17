@@ -2,6 +2,7 @@ var fs = require('fs-extra');
 var walk = require('walkdir');
 var util = require('util');
 var path = require('path');
+var os = require('os');
 var hoxy = require('hoxy');
 var winston = require('winston');
 var UglifyJS = require('uglify-js');
@@ -335,9 +336,7 @@ function bundleAppLevel(appLevelPath, appLevelName, done) {
       filename: appLevelName + '.js',
       libraryTarget: "amd"
     },
-    externals: [
-      /^((\/file)|(\/oe-files)|(\/ccstorex?)|(?!\.{1}|occ-components|(.+:\\)|\/{1}[a-z-A-Z0-9_.]{1})).+?$/
-    ],
+    externals: config.webpackExternalsPattern,
     module: {
       loaders: [{
         test: /\.js$/,
@@ -368,6 +367,12 @@ function bundleAppLevel(appLevelPath, appLevelName, done) {
   }, function(error, stats) {
     if(error) {
       done(error, null);
+      return;
+    }
+
+    if (stats.hasErrors()) {
+      const statsErrors = stats.toJson().errors;
+      done(statsErrors.join(os.EOL + os.EOL), null);
       return;
     }
 
@@ -491,9 +496,7 @@ OCCProxy.prototype.transpileExtraRoute = function ({ source, fileSettings }, don
       filename: fileName,
       libraryTarget: libraryTarget
     },
-    externals: [
-      /^((\/file)|(\/oe-files)|(\/ccstorex?)|(?!\.{1}|occ-components|(.+:\\|.+:\/)|\/{1}[a-z-A-Z0-9_.]{1})).+?$/
-    ],
+    externals: config.webpackExternalsPattern,
     module: {
       loaders: [{
         test: /\.js$/,
@@ -523,6 +526,12 @@ OCCProxy.prototype.transpileExtraRoute = function ({ source, fileSettings }, don
   }, function (error, stats) {
     if (error) {
       done(error, null);
+      return;
+    }
+
+    if (stats.hasErrors()) {
+      const statsErrors = stats.toJson().errors;
+      done(statsErrors.join(os.EOL + os.EOL), null);
       return;
     }
 

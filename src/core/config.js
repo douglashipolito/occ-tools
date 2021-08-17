@@ -127,6 +127,22 @@ try {
   winston.debug(`No package.json found at ${configsData.projects.current.path}`);
 }
 
+// it would be the default webpack externals
+// if no externals is provided
+var defaultWebpackExternalsPattern = [
+  /^((\/file)|(\/oe-files)|(\/msi-files)|(\/ccstorex?)|(?!\.{1}|occ-components|(.+:\\|.+:\/)|\/{1}[a-z-A-Z0-9_.]{1})).+?$/
+];
+
+var webpackSettings = projectSettings.webpack || {};
+
+// Webpack externals
+var webpackExternalsPattern = defaultWebpackExternalsPattern;
+if(Array.isArray(webpackSettings.externals)) {
+  webpackExternalsPattern = webpackSettings.externals.map(pattern => {
+    return new RegExp(pattern);
+  });
+}
+
 var _configDescriptor = {
   project_name: configsData.projects.current.name,
   configsDir: configsDir,
@@ -238,7 +254,8 @@ var _configDescriptor = {
   occRemoteFilesFolders: {
     [path.join(assetFilesPath, 'general')]: 'general',
     [path.join(assetFilesPath, 'thirdparty')]: 'thirdparty',
-  }
+  },
+  webpackExternalsPattern
 };
 
 _configDescriptor.github = {

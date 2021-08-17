@@ -2,6 +2,7 @@
 
 var fs = require('fs-extra');
 var path = require('path');
+var os = require('os');
 var util = require('util');
 var winston = require('winston');
 var webpack = require('webpack');
@@ -269,9 +270,15 @@ function uploadJs(widgetInfo, jsFile, options, callback) {
 
     var bundler = webpack(webpackConfigs);
 
-    bundler.run(function(err) {
+    bundler.run(function(err, stats) {
       if(err) {
         callback(err, null);
+        return;
+      }
+
+      if (stats.hasErrors()) {
+        const statsErrors = stats.toJson().errors;
+        done(statsErrors.join(os.EOL + os.EOL), null);
         return;
       }
 

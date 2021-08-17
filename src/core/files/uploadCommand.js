@@ -23,7 +23,7 @@ var PARALLEL_UPLOADS = 8;
  */
 function getFiles(globPattern, callback) {
   var options = {
-    cwd: path.join(_config.dir.project_root, path.dirname(globPattern)),
+    cwd: _config.dir.project_root,
     absolute: true
   };
 
@@ -39,41 +39,7 @@ function getFiles(globPattern, callback) {
     callback(null, fileList);
   };
 
-  new Glob(path.basename(globPattern), options, globCallback);
-}
-
-function generateFilesFolderPath(filesList) {
-  filesList = [
-    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/libs/custom-elements-solidjs/index-legacy.js',
-    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/libs/custom-elements-solidjs/index.js',
-    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/libs/custom-elements-solidjs/polyfills-legacy.js',
-    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/libs/custom-elements-solidjs/vendor-legacy.js',
-    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/libs/custom-elements-solidjs/vendor.js',
-    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/img/16-9-image.jpg',
-    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/msi-files/json/analytics/main.json',
-    '/home/msiocc/Sites/occ-platform/storefront/files/thirdparty/google9577bcf712e4c804.html',
-    '/home/msiocc/Sites/occ-platform/storefront/files/general/docs/samplespreadsheet.csv'
-  ];
-
-  const assetFilesPath = _config.dir.assetFilesPath;
-
-  return filesList.map(file => {
-    const basePath = path.relative(assetFilesPath, file);
-    let folder = path.dirname(basePath);
-    const baseFolder = basePath.split(path.sep)[0];
-    let thirdparty = true;
-
-    if(baseFolder !== 'thirdparty') {
-      folder = baseFolder;
-      thirdparty = false;
-    }
-
-    return {
-      filePath: file,
-      folder,
-      thirdparty
-    }
-  });
+  new Glob(globPattern, options, globCallback);
 }
 
 function generateFilePathMapping(filePath, settingsFolder) {
@@ -314,9 +280,7 @@ function jsBundle(options, done) {
       filename: options.name,
       libraryTarget: options.libraryTarget
     },
-    externals: [
-      /^((\/file)|(\/oe-files)|(\/ccstorex?)|(?!\.{1}|occ-components|(.+:\\|.+:\/)|\/{1}[a-z-A-Z0-9_.]{1})).+?$/
-    ],
+    externals: _config.webpackExternalsPattern,
     module: {
       loaders: [{
         test: /\.js$/,
@@ -339,6 +303,7 @@ function jsBundle(options, done) {
 
   var bundler = webpack(webpackConfigs);
 
+
   bundler.run(function (error, stats) {
     winston.info('[bundler:compile] %s', stats.toString({
       chunks: true, // Makes the build much quieter
@@ -347,6 +312,12 @@ function jsBundle(options, done) {
 
     if (error) {
       done(error, null);
+      return;
+    }
+
+    if (stats.hasErrors()) {
+      const statsErrors = stats.toJson().errors;
+      done(statsErrors.join(os.EOL + os.EOL), null);
       return;
     }
 
