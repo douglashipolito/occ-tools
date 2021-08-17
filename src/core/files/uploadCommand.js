@@ -83,6 +83,9 @@ function generateFilePathMapping(filePath, settingsFolder) {
  */
 function uploadFiles(settings, fileList, callback) {
   var self = this;
+  var count = 1;
+  winston.info('Total Files Found: %s', fileList.length);
+  console.log('');
 
   async.eachLimit(
     fileList,
@@ -90,6 +93,7 @@ function uploadFiles(settings, fileList, callback) {
     function (file, cb) {
       var destination = generateFilePathMapping(file, settings.folder);
 
+      winston.info('File Number %s', count);
       winston.info('Uploading file: "%s"', path.relative(_config.dir.project_root, file));
       winston.info('Folder on OCC: "%s"', destination.folder);
       winston.info('Remote Path: "%s"', destination.remote);
@@ -99,6 +103,8 @@ function uploadFiles(settings, fileList, callback) {
         initFileUpload.bind(self, destination, settings),
         doFileUpload.bind(self, file, destination, settings)
       ], cb);
+
+      count++;
     }, callback);
 }
 
