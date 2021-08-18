@@ -67,7 +67,10 @@ function generateFilePathMapping(filePath, settingsFolder) {
       remotePath
   );
 
+  const filename = path.join(folder, path.basename(filePath));
+
   return {
+    filename,
     filePath,
     folder,
     thirdparty,
@@ -101,8 +104,8 @@ function uploadFiles(settings, fileList, callback) {
       winston.info('');
 
       async.waterfall([
-        initFileUpload.bind(self, destination, settings),
-        doFileUpload.bind(self, file, destination, settings)
+        initFileUpload.bind(self, destination.filename, settings),
+        doFileUpload.bind(self, file, destination.filename, settings)
       ], cb);
 
       count++;
@@ -116,7 +119,7 @@ function uploadFiles(settings, fileList, callback) {
  * @param {Object} settings command options
  * @param {Function} callback callback function
  */
-function initFileUpload(destination, settings, callback) {
+function initFileUpload(destination, _settings, callback) {
   var options = {
     api: 'files',
     method: 'put',
