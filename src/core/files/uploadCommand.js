@@ -48,6 +48,7 @@ function generateFilePathMapping(filePath, settingsFolder) {
 
   const basePath = path.relative(assetFilesPath, filePath);
   let folder = settingsFolder ? util.format('/%s/%s', settingsFolder, path.basename(filePath)) : path.dirname(basePath);
+  folder = folder.replace(/[\\]{1,2}/g, '/'); // win support
 
   const baseFolder = basePath.split(path.sep)[0];
   let thirdparty = true;
@@ -67,7 +68,8 @@ function generateFilePathMapping(filePath, settingsFolder) {
       remotePath
   );
 
-  const filename = settingsFolder ? folder : path.join(folder, path.basename(filePath));
+  let filename = settingsFolder ? folder : path.join(folder, path.basename(filePath));
+  filename = filename.replace(/[\\]{1,2}/g, '/'); // win support
 
   return {
     filename,
