@@ -344,12 +344,6 @@ Upload.prototype.do_files.options = [
     helpArg: '[folder]',
     type: 'string',
     help: '(Optional) Folder to upload: thirdparty, crashreports, general, collections, products.'
-  },
-  {
-    names: ['no-minify', 'nm'],
-    helpArg: '[no-minify]',
-    type: 'bool',
-    help: '(Optional) Prevent js and json minification'
   }
 ];
 

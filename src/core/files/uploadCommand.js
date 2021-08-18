@@ -188,13 +188,22 @@ function generateBundleTempFile({ source, fileSettings }, callback) {
   }
 }
 
+async function resolveProjectFilesPaths() {
+  const getFilesPromisified = util.promisify(getFiles);
+
+  try {
+    for(const file of projectSettingsFiles) {
+      const foundFiles = await getFilesPromisified(file.path);
+      file.foundFiles = foundFiles;
+    }
+  } catch(error) {
+    Promise.reject(error);
+  }
+}
+
 function getFileSetting(source) {
   return projectSettingsFiles.find(file => {
-    const projectSettingfilePath = path.join(_config.dir.project_root, file.path);
-    const normalizedProjectSettingPath = path.normalize(projectSettingfilePath);
-    const normalizedCurrentSource = path.normalize(source);
-
-    return normalizedProjectSettingPath === normalizedCurrentSource;
+    return file.foundFiles.includes(path.normalize(source));
   })
   || {};
 }
@@ -214,14 +223,14 @@ function doFileUpload(source, destination, settings, token, callback) {
     function (callback) {
       var extension = path.extname(source);
       var fileSettings = getFileSetting(source);
-      var shouldMinify = !settings.no_minify && /(\.js|\.css)/.test(extension);
+      var shouldTranspile = /(\.js|\.css)/.test(extension);
 
       if(typeof fileSettings.transpile !== 'undefined') {
-        shouldMinify = fileSettings.transpile;
+        shouldTranspile = fileSettings.transpile;
       }
 
       var target = source;
-      if(shouldMinify) {
+      if(shouldTranspile) {
         generateBundleTempFile({ source, settings, fileSettings }, function(error, filePath) {
           return callback(error, filePath);
         });
@@ -236,18 +245,19 @@ function doFileUpload(source, destination, settings, token, callback) {
     },
     // upload the file to OCC
     function (file, callback) {
-      self._occ.request({
-        api: '/files/' + token,
-        method: 'post',
-        body: {
-          filename: destination,
-          token: token,
-          index: 0,
-          file: file
-        }
-      }, function (error, data) {
-        return callback(error, data);
-      });
+      // self._occ.request({
+      //   api: '/files/' + token,
+      //   method: 'post',
+      //   body: {
+      //     filename: destination,
+      //     token: token,
+      //     index: 0,
+      //     file: file
+      //   }
+      // }, function (error, data) {
+      //   return callback(error, data);
+      // });
+      callback();
     }
   ], callback);
 }
@@ -379,6 +389,9 @@ function postUpload(_settings, callback) {
  * @param {Function} callback the callback function
  */
 module.exports = function (globPattern, settings, callback) {
+  // Resolve all files in the project files settings
+  resolveProjectFilesPaths();
+
   async.waterfall([
     getFiles.bind(this, globPattern),
     uploadFiles.bind(this, settings),

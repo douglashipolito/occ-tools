@@ -8,6 +8,9 @@ This project must adhere to [this](https://github.com/olivierlacan/keep-a-change
 - Changed the occ-tools upload files command to auto-detect the --folder based on the local file's path
 - Added support to set webpack configs through project settings
 
+### Removed
+- Removed the option `--no-minify` from the files command. It's now controlled by the occ-tools.project.json settings.
+
 ### Fixed
 - Glob pattern on upload files. It was not accepting patterns like **/*.js or **/*.*
 - Added extra validation for webpack bundler errors. It will now stop the process if something goes wrong while bundling. 
