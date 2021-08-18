@@ -67,7 +67,7 @@ function generateFilePathMapping(filePath, settingsFolder) {
       remotePath
   );
 
-  const filename = path.join(folder, path.basename(filePath));
+  const filename = settingsFolder ? folder : path.join(folder, path.basename(filePath));
 
   return {
     filename,
