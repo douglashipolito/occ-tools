@@ -1,6 +1,7 @@
 var webpack = require('webpack');
 var path = require('path');
 var fs = require('fs-extra');
+var os = require('os');
 var util = require('util');
 var appConfig = require('../config');
 var winston = require('winston');
@@ -21,7 +22,7 @@ function Compiler() {
     defaultWidgetPathName: 'widgets',
     defaultWidgetCompanyName: 'objectedge',
     occToolsModulesPath: path.join(appConfig.occToolsPath, '..', 'node_modules'),
-    externalsPattern: /^((\/file)|(\/oe-files)|(\/ccstorex?)|(?!\.{1}|occ-components|(.+:\\|.+:\/)|\/{1}[a-z-A-Z0-9_.]{1})).+?$/,
+    externalsPattern: appConfig.webpackExternalsPattern,
     occComponentsTempDir: path.join(appConfig.dir.project_root, '.occ-components', 'widgets'),
     occWidgetCoreName: 'widget-core',
     occWidgetCoreImport: 'occ-components/widget-core'
@@ -58,6 +59,12 @@ Compiler.prototype.run = function (done) {
       return;
     }
 
+    if (stats.hasErrors()) {
+      const statsErrors = stats.toJson().errors;
+      done(statsErrors.join(os.EOL + os.EOL), null);
+      return;
+    }
+
     self.changeSourceMAPURL();
     done(null, stats);
   });
@@ -80,6 +87,12 @@ Compiler.prototype.watch = function (options, done) {
   self.bundler.watch(options, function(err, stats) {
     if(err) {
       done(err, null);
+      return;
+    }
+
+    if (stats.hasErrors()) {
+      const statsErrors = stats.toJson().errors;
+      done(statsErrors.join(os.EOL + os.EOL), null);
       return;
     }
 

@@ -8,6 +8,7 @@ var webpack = require('webpack');
 var winston = require('winston');
 var occConfigs = require('../config');
 var projectSettingsAppLevel = occConfigs.projectSettings['app-level-config'] || {};
+var os = require('os');
 
 var util = require('util');
 
@@ -104,9 +105,7 @@ function jsBundle(options, done) {
       filename: options.name + '.js',
       libraryTarget: 'amd'
     },
-    externals: [
-      /^((\/file)|(\/oe-files)|(\/ccstorex?)|(?!\.{1}|occ-components|(.+:\\|.+:\/)|\/{1}[a-z-A-Z0-9_.]{1})).+?$/
-    ],
+    externals: occConfigs.webpackExternalsPattern,
     module: {
       loaders: [{
         test: /\.js$/,
@@ -137,6 +136,12 @@ function jsBundle(options, done) {
 
     if (error) {
       done(error, null);
+      return;
+    }
+
+    if (stats.hasErrors()) {
+      const statsErrors = stats.toJson().errors;
+      done(statsErrors.join(os.EOL + os.EOL), null);
       return;
     }
 

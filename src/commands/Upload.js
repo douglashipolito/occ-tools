@@ -271,12 +271,6 @@ Upload.prototype.do_stack.help = (
 
 Upload.prototype.do_appLevel = function(subcmd, opts, args, callback) {
   var appLevelNames = args;
-  var appLevelBasePath = path.join(config.dir.project_root, 'app-level');
-
-  if (!appLevelNames.length) {
-    appLevelNames = glob.sync(appLevelBasePath + '/*').map(url => url.split('/').pop());
-  }
-
   var appLevel = new AppLevel('admin');
 
   appLevel.on('complete', function(message) {
@@ -304,7 +298,7 @@ Upload.prototype.do_files = function(subcmd, opts, args, callback) {
   var filePath = args[0];
   var allowedFolders = ['thirdparty', 'crashreports', 'general', 'collections', 'products'];
 
-  if (!allowedFolders.includes(opts.folder) && !opts.folder.startsWith('thirdparty/')) {
+  if (opts.folder && !allowedFolders.includes(opts.folder) && !opts.folder.startsWith('thirdparty/')) {
     return callback(util.format(
       'The supplied folder must be one of the following values: [%s]',
       allowedFolders.join(', ')
@@ -326,10 +320,15 @@ Upload.prototype.do_files = function(subcmd, opts, args, callback) {
     return callback(error);
   });
 
-  var self = this;
-  files.uploadCommand(filePath, opts, function(cb) {
-    self.do_appLevel('appLevel', {}, [], cb);
-  });
+  if(opts.folder) {
+    winston.warn('You are using the option --folder and this will override the default files upload\'s behavior!');
+    winston.warn('occ-tools should auto-detect the remote folder based on the local path...');
+    winston.warn('Your file will be uploaded, make sure you are running it correctly.');
+    console.log('');
+  }
+
+  opts.allowedFolders = allowedFolders;
+  files.uploadCommand(filePath, opts, callback);
 };
 
 Upload.prototype.do_files.help = (
@@ -344,14 +343,7 @@ Upload.prototype.do_files.options = [
     names: ['folder', 'f'],
     helpArg: '[folder]',
     type: 'string',
-    default: 'general',
-    help: '(Optional) Folder to upload: thirdparty, crashreports, general (default), collections, products.'
-  },
-  {
-    names: ['no-minify', 'nm'],
-    helpArg: '[no-minify]',
-    type: 'bool',
-    help: '(Optional) Prevent js and json minification'
+    help: '(Optional) Folder to upload: thirdparty, crashreports, general, collections, products.'
   }
 ];
 

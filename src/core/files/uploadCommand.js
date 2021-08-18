@@ -11,6 +11,7 @@ var os = require('os');
 var _config = require('../config');
 var projectSettingsFiles = _config.projectSettings['files-config'] || [];
 var CleanCSS = require('clean-css');
+var uploadAppLevel = require('../app-level/upload');
 
 // Number of parallel uploads
 var PARALLEL_UPLOADS = 8;
@@ -23,7 +24,7 @@ var PARALLEL_UPLOADS = 8;
  */
 function getFiles(globPattern, callback) {
   var options = {
-    cwd: path.join(_config.dir.project_root, path.dirname(globPattern)),
+    cwd: _config.dir.project_root,
     absolute: true
   };
 
@@ -39,7 +40,44 @@ function getFiles(globPattern, callback) {
     callback(null, fileList);
   };
 
-  new Glob(path.basename(globPattern), options, globCallback);
+  new Glob(globPattern, options, globCallback);
+}
+
+function generateFilePathMapping(filePath, settingsFolder) {
+  const assetFilesPath = _config.dir.assetFilesPath;
+
+  const basePath = path.relative(assetFilesPath, filePath);
+  let folder = settingsFolder ? util.format('/%s/%s', settingsFolder, path.basename(filePath)) : path.dirname(basePath);
+  folder = folder.replace(/[\\]{1,2}/g, '/'); // win support
+
+  const baseFolder = basePath.split(path.sep)[0];
+  let thirdparty = true;
+  let remotePath = '';
+
+  if(baseFolder !== 'thirdparty') {
+    folder = baseFolder;
+    thirdparty = false;
+    remotePath = `/file/${basePath}`;
+  } else {
+    remotePath = basePath.replace(baseFolder, '').replace(/[\\]{1,2}/g, '/');
+  }
+
+  const remote = util.format(
+      '%s%s',
+      _config.environment.details.dns,
+      remotePath
+  );
+
+  let filename = settingsFolder ? folder : path.join(folder, path.basename(filePath));
+  filename = filename.replace(/[\\]{1,2}/g, '/'); // win support
+
+  return {
+    filename,
+    filePath,
+    folder,
+    thirdparty,
+    remote
+  }
 }
 
 /**
@@ -51,16 +89,28 @@ function getFiles(globPattern, callback) {
  */
 function uploadFiles(settings, fileList, callback) {
   var self = this;
+  var count = 1;
+  winston.info('Total Files Found: %s', fileList.length);
+  console.log('');
+
   async.eachLimit(
     fileList,
     PARALLEL_UPLOADS,
     function (file, cb) {
-      winston.info('Uploading file %s...', path.basename(file));
-      var destination = util.format('/%s/%s', settings.folder, path.basename(file));
+      var destination = generateFilePathMapping(file, settings.folder);
+
+      winston.info('File Number %s', count);
+      winston.info('Uploading file: "%s"', path.relative(_config.dir.project_root, file));
+      winston.info('Folder on OCC: "%s"', destination.folder);
+      winston.info('Remote Path: "%s"', destination.remote);
+      winston.info('');
+
       async.waterfall([
-        initFileUpload.bind(self, destination, settings),
-        doFileUpload.bind(self, file, destination, settings)
+        initFileUpload.bind(self, destination.filename, settings),
+        doFileUpload.bind(self, file, destination.filename, settings)
       ], cb);
+
+      count++;
     }, callback);
 }
 
@@ -71,7 +121,7 @@ function uploadFiles(settings, fileList, callback) {
  * @param {Object} settings command options
  * @param {Function} callback callback function
  */
-function initFileUpload(destination, settings, callback) {
+function initFileUpload(destination, _settings, callback) {
   var options = {
     api: 'files',
     method: 'put',
@@ -140,13 +190,24 @@ function generateBundleTempFile({ source, fileSettings }, callback) {
   }
 }
 
+async function resolveProjectFilesPaths(callback) {
+  const getFilesPromisified = util.promisify(getFiles);
+
+  try {
+    for(const file of projectSettingsFiles) {
+      const foundFiles = await getFilesPromisified(file.path);
+      file.foundFiles = foundFiles;
+    }
+
+    callback(null);
+  } catch(error) {
+    callback(error);
+  }
+}
+
 function getFileSetting(source) {
   return projectSettingsFiles.find(file => {
-    const projectSettingfilePath = path.join(_config.dir.project_root, file.path);
-    const normalizedProjectSettingPath = path.normalize(projectSettingfilePath);
-    const normalizedCurrentSource = path.normalize(source);
-
-    return normalizedProjectSettingPath === normalizedCurrentSource;
+    return file.foundFiles.includes(path.normalize(source));
   })
   || {};
 }
@@ -166,14 +227,14 @@ function doFileUpload(source, destination, settings, token, callback) {
     function (callback) {
       var extension = path.extname(source);
       var fileSettings = getFileSetting(source);
-      var shouldMinify = !settings.no_minify && /(\.js|\.css)/.test(extension);
+      var shouldTranspile = /(\.js|\.css)/.test(extension);
 
       if(typeof fileSettings.transpile !== 'undefined') {
-        shouldMinify = fileSettings.transpile;
+        shouldTranspile = fileSettings.transpile;
       }
 
       var target = source;
-      if(shouldMinify) {
+      if(shouldTranspile) {
         generateBundleTempFile({ source, settings, fileSettings }, function(error, filePath) {
           return callback(error, filePath);
         });
@@ -242,9 +303,7 @@ function jsBundle(options, done) {
       filename: options.name,
       libraryTarget: options.libraryTarget
     },
-    externals: [
-      /^((\/file)|(\/oe-files)|(\/ccstorex?)|(?!\.{1}|occ-components|(.+:\\|.+:\/)|\/{1}[a-z-A-Z0-9_.]{1})).+?$/
-    ],
+    externals: _config.webpackExternalsPattern,
     module: {
       loaders: [{
         test: /\.js$/,
@@ -267,6 +326,7 @@ function jsBundle(options, done) {
 
   var bundler = webpack(webpackConfigs);
 
+
   bundler.run(function (error, stats) {
     winston.info('[bundler:compile] %s', stats.toString({
       chunks: true, // Makes the build much quieter
@@ -275,6 +335,12 @@ function jsBundle(options, done) {
 
     if (error) {
       done(error, null);
+      return;
+    }
+
+    if (stats.hasErrors()) {
+      const statsErrors = stats.toJson().errors;
+      done(statsErrors.join(os.EOL + os.EOL), null);
       return;
     }
 
@@ -312,6 +378,12 @@ function cssBundle(options, done) {
   done(null, outputFile);
 }
 
+function postUpload(_settings, callback) {
+  async.waterfall([
+    uploadAppLevel.bind(this, [], {})
+  ], callback);
+}
+
 /**
  * Upload multiple files to OCC
  *
@@ -321,7 +393,9 @@ function cssBundle(options, done) {
  */
 module.exports = function (globPattern, settings, callback) {
   async.waterfall([
+    resolveProjectFilesPaths.bind(this),
     getFiles.bind(this, globPattern),
-    uploadFiles.bind(this, settings)
+    uploadFiles.bind(this, settings),
+    postUpload.bind(this, settings)
   ], callback);
 };

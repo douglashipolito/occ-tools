@@ -116,6 +116,9 @@ if(envDetailsFromProject) {
 var databaseDir = path.join(configsDir, 'database');
 fs.ensureDirSync(databaseDir);
 
+// /files path
+var assetFilesPath = path.join(absoluteStorefrontDir, 'files');
+
 // Defines the assets version, this can be used in the store to control the cache
 var assetsVersion = '1.0.0';
 try {
@@ -124,6 +127,21 @@ try {
   winston.debug(`No package.json found at ${configsData.projects.current.path}`);
 }
 
+// it would be the default webpack externals
+// if no externals is provided
+var defaultWebpackExternalsPattern = [
+  /^((\/file)|(\/oe-files)|(\/msi-files)|(\/ccstorex?)|(?!\.{1}|occ-components|(.+:\\|.+:\/)|\/{1}[a-z-A-Z0-9_.]{1})).+?$/
+];
+
+var webpackSettings = projectSettings.webpack || {};
+
+// Webpack externals
+var webpackExternalsPattern = defaultWebpackExternalsPattern;
+if(Array.isArray(webpackSettings.externals)) {
+  webpackExternalsPattern = webpackSettings.externals.map(pattern => {
+    return new RegExp(pattern);
+  });
+}
 
 var _configDescriptor = {
   project_name: configsData.projects.current.name,
@@ -163,7 +181,8 @@ var _configDescriptor = {
     occToolsProject: path.join(configsData.projects.current.path, 'occ-tools.project.json'),
     transpiled: path.join(absoluteStorefrontDir, '.occ-transpiled'),
     occComponents: path.join(absoluteStorefrontDir, '.occ-components'),
-    databaseDir: databaseDir
+    databaseDir: databaseDir,
+    assetFilesPath: assetFilesPath
   },
   theme: {
     name: configsData.projects.current.theme.name,
@@ -231,7 +250,12 @@ var _configDescriptor = {
   OCC_DEFAULT_LIMIT: 250,
   currentIP: currentIP,
   projectSettings: projectSettings,
-  assetsVersion: `${assetsVersion}${new Date().getTime()}`
+  assetsVersion: `${assetsVersion}${new Date().getTime()}`,
+  occRemoteFilesFolders: {
+    [path.join(assetFilesPath, 'general')]: 'general',
+    [path.join(assetFilesPath, 'thirdparty')]: 'thirdparty',
+  },
+  webpackExternalsPattern
 };
 
 _configDescriptor.github = {

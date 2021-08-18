@@ -86,7 +86,7 @@ module.exports = function(emailId, settings, callback) {
       api: util.format('/email/types/%s/templates', emailId),
       method: 'put',
       body: {
-        filename: util.format('/notifications/uploads/%s', tempFile)
+        filename: util.format('/notifications/uploads/%s', path.basename(tempFile))
       },
       headers: {
         'x-ccsite': settings.siteId,
@@ -121,7 +121,7 @@ module.exports = function(emailId, settings, callback) {
     uploadFile.call(
       self,
       tempFile,
-      util.format('/notifications/uploads/%s',tempFile),
+      util.format('/notifications/uploads/%s', path.basename(tempFile)),
       function(error) {
         if (error) callback(error);
         callback();
