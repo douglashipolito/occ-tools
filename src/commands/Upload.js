@@ -271,12 +271,6 @@ Upload.prototype.do_stack.help = (
 
 Upload.prototype.do_appLevel = function(subcmd, opts, args, callback) {
   var appLevelNames = args;
-  var appLevelBasePath = path.join(config.dir.project_root, 'app-level');
-
-  if (!appLevelNames.length) {
-    appLevelNames = glob.sync(appLevelBasePath + '/*').map(url => url.split('/').pop());
-  }
-
   var appLevel = new AppLevel('admin');
 
   appLevel.on('complete', function(message) {
@@ -326,8 +320,6 @@ Upload.prototype.do_files = function(subcmd, opts, args, callback) {
     return callback(error);
   });
 
-  var self = this;
-
   if(opts.folder) {
     winston.warn('You are using the option --folder and this will override the default files upload\'s behavior!');
     winston.warn('occ-tools should auto-detect the remote folder based on the local path...');
@@ -335,9 +327,8 @@ Upload.prototype.do_files = function(subcmd, opts, args, callback) {
     console.log('');
   }
 
-  files.uploadCommand(filePath, opts, function(cb) {
-    self.do_appLevel('appLevel', {}, [], cb);
-  });
+  opts.allowedFolders = allowedFolders;
+  files.uploadCommand(filePath, opts, callback);
 };
 
 Upload.prototype.do_files.help = (

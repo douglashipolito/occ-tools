@@ -4,13 +4,18 @@ var fs = require('fs-extra');
 var path = require('path');
 var async = require('async');
 var winston = require('winston');
+var glob = require('glob');
 var util = require('util');
 var bundleAppLevel = require('../app-level/bundle');
 var _config = require('../config');
 
-
-module.exports = function(appLevelNames, settings, callback) {
+module.exports = function(appLevelNames = [], _settings, callback) {
   var self = this;
+  var appLevelBasePath = path.join(_config.dir.project_root, 'app-level');
+
+  if (!appLevelNames.length) {
+    appLevelNames = glob.sync(appLevelBasePath + '/*').map(url => url.split('/').pop());
+  }
 
   var uploadAppLevel = function(outputFile, outputFileName, outputFilePath, entryFilePath, stats, callback) {
     winston.info('Uploading app-level code...');
