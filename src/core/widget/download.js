@@ -139,14 +139,18 @@ const downloadLocales = (occ, widgetInfo, settings) => {
         'X-CCAsset-Language': locale,
       },
     };
-    const data = await occ.promisedRequest(options);
-    const localePath = path.join(localesPath, locale, `ns.${widgetInfo.item.i18nresources}.json`);
 
-    if (!data) {
+    try {
+      const data = await occ.promisedRequest(options);
+      const localePath = path.join(localesPath, locale, `ns.${widgetInfo.item.i18nresources}.json`);
+      if (!data) {
+        winston.warn(`Locale ${locale} not find for widget ${widget}`);
+      } else {
+        const localeJson = JSON.stringify(data.localeData, null, 2);
+        fs.outputFileSync(localePath, localeJson);
+      }
+    } catch (e) {
       winston.warn(`Locale ${locale} not find for widget ${widget}`);
-    } else {
-      const localeJson = JSON.stringify(data.localeData, null, 2);
-      fs.outputFileSync(localePath, localeJson);
     }
   });
 
@@ -162,14 +166,18 @@ const downloadConfigLocales = async (occ, widget, widgetId, configPath, settings
         'X-CCAsset-Language': locale,
       },
     };
-    const data = await occ.promisedRequest(options);
-    const localePath = path.join(configPath, 'locales', `${locale}.json`);
+    try {
+      const data = await occ.promisedRequest(options);
+      const localePath = path.join(configPath, 'locales', `${locale}.json`);
 
-    if (!data) {
+      if (!data) {
+        winston.warn(`Config locale ${locale} not find for widget ${widget}`);
+      } else {
+        const localeJson = JSON.stringify(data.localeData, null, 2);
+        fs.outputFileSync(localePath, localeJson);
+      }
+    } catch (e) {
       winston.warn(`Config locale ${locale} not find for widget ${widget}`);
-    } else {
-      const localeJson = JSON.stringify(data.localeData, null, 2);
-      fs.outputFileSync(localePath, localeJson);
     }
   });
 
