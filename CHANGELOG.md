@@ -2,6 +2,11 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [2.0.0-beta.55] - 2021-08-31]
+
+### Fixed
+- Error in the app-level catch
+
 ## [2.0.0-beta.54] - 2021-08-17]
 
 ### Added

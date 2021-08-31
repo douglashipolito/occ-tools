@@ -34,7 +34,7 @@ module.exports = function(appLevelNames = [], _settings, callback) {
         self._occ.request(options, function(error, data) {
           if (error) return callback(error);
           if (data && data.errorCode) {
-            winston.warn('%s: %s - %s', appLevel, data.errorCode, data.message);
+            winston.warn('%s - %s', data.errorCode, data.message);
           }
           return callback();
         });
