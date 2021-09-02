@@ -20,6 +20,42 @@ function uploadSSE(name, opts, callback) {
   // source path
   var sourceDir = path.join(_config.dir.server_side_root, name);
 
+  // get occ tools settings
+  var pkgJson = fs.readJSONSync(path.join(sourceDir, 'package.json'));
+  var occToolsConfig = pkgJson.occToolsConfig || {};
+
+  // occ tools configs
+  var allowedConfigs = ['ignore'];
+
+  var mergeOptionByProperty = function (target, source, propertyKey) {
+    if (!target.hasOwnProperty(propertyKey)) {
+      return source[propertyKey];
+    }
+
+    var targetProperty = target[propertyKey];
+    var sourceProperty = source[propertyKey];
+
+    // Ignore option
+    if (propertyKey === 'ignore') {
+      var isPropertyValid = (
+        typeof sourceProperty === 'string' ||
+        Array.isArray(sourceProperty) &&
+        sourceProperty.every(function (item) {
+          return typeof item === 'string';
+        })
+      );
+
+      // Validate and merge
+      if (isPropertyValid) {
+        return targetProperty.concat(sourceProperty);
+      } else {
+        winston.warn('Invalid value passed to SSE config: ' + propertyKey + '. It should be an array of strings or an string.');
+      }
+    }
+
+    return targetProperty;
+  }
+
   /**
    * Install Node Modules
    */
@@ -75,11 +111,27 @@ function uploadSSE(name, opts, callback) {
       callback('Error while creating the zip file.');
     });
 
-    archive.pipe(output);
-    archive.glob(path.join('**', '*'), {
+    var globOptions = {
       cwd: sourceDir,
       ignore: ['package-lock.json']
+    };
+
+    // Handle configs
+    Object.keys(occToolsConfig).forEach(function (configKey) {
+      if (!allowedConfigs.includes(configKey)) {
+        winston.warn('Unrecognized SSE config: ' + configKey);
+        return;
+      }
+
+      globOptions[configKey] = mergeOptionByProperty(
+        globOptions,
+        occToolsConfig,
+        configKey
+      );
     });
+
+    archive.pipe(output);
+    archive.glob(path.join('**', '*'), globOptions);
     archive.finalize();
   };
 
@@ -166,7 +218,15 @@ function uploadSSE(name, opts, callback) {
   };
 
   async.waterfall(
-    [checkSSEPath, installModules, zipFiles, pushSSEConfigs, uploadToOCC, pushSSEConfigs, clearTemporaryFile],
+    [
+      checkSSEPath,
+      installModules,
+      zipFiles,
+      pushSSEConfigs,
+      uploadToOCC,
+      pushSSEConfigs,
+      clearTemporaryFile
+    ],
     callback
   );
 }
