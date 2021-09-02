@@ -20,11 +20,11 @@ function uploadSSE(name, opts, callback) {
   // source path
   var sourceDir = path.join(_config.dir.server_side_root, name);
 
-  // get occ tools settings
+  // get occ tools settings from package json
   var pkgJson = fs.readJSONSync(path.join(sourceDir, 'package.json'));
   var occToolsConfig = pkgJson.occToolsConfig || {};
 
-  // occ tools configs
+  // set allowed configurations
   var allowedConfigs = ['ignore'];
 
   var mergeOptionByProperty = function (target, source, propertyKey) {
