@@ -2,6 +2,13 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+
+## [2.0.0-beta.56] - 2021-09-02]
+
+### Added
+- Added support to provide options to occ tools in SSE package.json
+- Added option in SSE to ignore files/folders
+
 ## [2.0.0-beta.55] - 2021-08-31]
 
 ### Fixed
