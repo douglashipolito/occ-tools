@@ -417,7 +417,7 @@ OCCProxy.prototype.transpileAppLevel = function (appLevelName, appLevelPath, don
   walk(currentAppLevelExtensionDir).on('file', function (item) {
     if (new RegExp(configsPath).test(item)) return;
 
-    if(/\.js/.test(item)) {
+    if(/^(?!.*\.(spec|test)\.js$).*\.js$/.test(item)) {
       var jsName = path.basename(item, '.js');
 
       if (/vendors/.test(item) && !/\.min\.js/.test(item) && configs.uglify !== false) {
