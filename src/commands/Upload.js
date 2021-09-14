@@ -327,10 +327,14 @@ Upload.prototype.do_files = function(subcmd, opts, args, callback) {
     return callback(error);
   });
 
-  var self = this;
-  files.uploadCommand(filePath, opts, function(cb) {
-    self.do_appLevel('appLevel', {}, [], cb);
-  });
+  // While we don't have a way to disable app-level upload
+  // this code will be commented out
+  // var self = this;
+  // files.uploadCommand(filePath, opts, function(cb) {
+  //   self.do_appLevel('appLevel', {}, [], cb);
+  // });
+
+  files.uploadCommand(filePath, opts, callback);
 };
 
 Upload.prototype.do_files.help = (
