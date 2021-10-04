@@ -2,6 +2,10 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [2.0.0-beta.57] - 2021-09-10]
+
+### Added
+- Added support for .spec.js|.test.js files for appLevel (preventing processing those files)
 
 ## [2.0.0-beta.56] - 2021-09-02]
 
@@ -25,7 +29,7 @@ This project must adhere to [this](https://github.com/olivierlacan/keep-a-change
 
 ### Fixed
 - Glob pattern on upload files. It was not accepting patterns like **/*.js or **/*.*
-- Added extra validation for webpack bundler errors. It will now stop the process if something goes wrong while bundling. 
+- Added extra validation for webpack bundler errors. It will now stop the process if something goes wrong while bundling.
 
 ## [2.0.0-beta.53] - 2021-07-22]
 
@@ -267,10 +271,10 @@ is still shown when the user upgrades after changing something in the widget.
 - New command compile email
   - This command compiles an email template and optionally sends it, without using OCC for this
   - Also allows creating reusable templates and functions to be used on emails
-    - Upload email also support this feature 
+    - Upload email also support this feature
   - https://github.com/objectedge/occ-tools/wiki/Compile-Email
   - For more information about the template engine used by OCC, see https://freemarker.apache.org/
-- Added option to upload an email template on deploy command 
+- Added option to upload an email template on deploy command
   - https://github.com/objectedge/occ-tools/wiki/Deploy-Command
 - New commands to upload, delete and download response filters
   - Donwload: https://github.com/objectedge/occ-tools/wiki/Download-Response-Filters
@@ -293,7 +297,7 @@ is still shown when the user upgrades after changing something in the widget.
 - Improvements on widget upload performance
   - Some calls are made parallel now
   - OCC now provides a REST API to update the less and template for all instances
- 
+
 ### Removed
 - Removed a logging option that was generating a '-tools.log' file when some error occurred
 
@@ -330,7 +334,7 @@ is still shown when the user upgrades after changing something in the widget.
 
 ## [2.0.0-beta.15] - 2018-07-23]
 ### Fixed
-- All paths to apis. There was an issue in some features where the `path.join` was being used instead of `util.format` to build apis urls. Due to this, the URLs were being built wrongly for Windows. 
+- All paths to apis. There was an issue in some features where the `path.join` was being used instead of `util.format` to build apis urls. Due to this, the URLs were being built wrongly for Windows.
 - Issue when Hologram is not installed. Now the Hologram is optional.
 
 ## [2.0.0-beta.14.1] - 2018-07-16]
@@ -352,12 +356,12 @@ is still shown when the user upgrades after changing something in the widget.
   - Option to just generate the extension and save it locally. The same as occ-tools generate extension
 ### Fixed
 - Fix upgrade widget inside stacks
-  - When widgets are inside of a stack they are not directly added on the structure, they are like region inside the regions, so the method to restore is recursively 
+  - When widgets are inside of a stack they are not directly added on the structure, they are like region inside the regions, so the method to restore is recursively
     looking for widgets for regions inside regions.
 - Issue on save mocks status change and edit mock content
 ### Changed
 - Changed the behavior of the save as mock. Now it will save with the `enable` and `isAbsolute` set to `false` and the filePath will be relative to the project.
-- Changed the behavior of the `extraRoutes` to support both `filePath` and `process` options together and the context of the `process` function will be the same as the route. 
+- Changed the behavior of the `extraRoutes` to support both `filePath` and `process` options together and the context of the `process` function will be the same as the route.
 
 ## [2.0.0-beta.13] - 2018-06-19
 ### Fixed
@@ -382,13 +386,13 @@ is still shown when the user upgrades after changing something in the widget.
 
 ## [2.0.0-beta.11] - 2018-05-23
 ### Fixed
-- Extension generation issue 
+- Extension generation issue
 
 ## [2.0.0-beta.10] - 2018-05-21
 ### Added
 - Commands to trigger, list, download and upload emails
 # Fixed
-- Issues on server side extensions 
+- Issues on server side extensions
 
 ## [2.0.0-beta.9] - 2018-04-20
 ### Fixed
@@ -447,7 +451,7 @@ is still shown when the user upgrades after changing something in the widget.
     set-env-credentials
     set-github      Set Github Credentials
     configs-path    Location of occ-tools configurations file
-    
+
 - No dependency with occ-tools-gui.
 
 ## [2.0.0-alpha.14] - 2018-03-05
@@ -465,7 +469,7 @@ is still shown when the user upgrades after changing something in the widget.
 - Upgrade Command - Refactor & Backup/Restore widget instances
 - ability to pass the locales through proxy
 - option to create commands without sub-commands
-- new option to allow extra routes 
+- new option to allow extra routes
 
 ### Fixed
 - reduce parallel calls on upload widget
