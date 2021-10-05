@@ -3,6 +3,7 @@
 var util = require('util');
 var winston = require('winston');
 var async = require('async');
+const { forEach } = require('lodash');
 
 /**
  * Reduces multiples arrays into one final array.
@@ -147,6 +148,75 @@ var getLayoutStructures = function (widgetType, occ, widgetInformation, layoutId
 };
 
 /**
+ * Get all custom locales based on OCC available locales
+ *
+ * @param {String} widgetType The widget type
+ * @param {Object} occ The occ requester
+ * @param {Object} widgetInformation Widget information
+ * @param {Function} callback The callback function
+ */
+var getWidgetLocales = function (widgetType, occ, widgetInformation, callback) {
+  // Get available locales from all sites
+  winston.info('Requesting available locales to OCC');
+
+  occ.request({
+    api: '/merchant/contentLocales?includeAllSites=true',
+    method: 'get'
+  }, function (err, response) {
+    var error = response.errorCode ? response.message : err;
+    if (error) return callback(
+      util.format('Error requesting availables locales: %s', error)
+    );
+
+    var availableLocales = response && response.items;
+    var locales = {};
+
+    winston.info('Success requesting available locales. Found:');
+    winston.info(JSON.stringify(availableLocales, null, 2));
+
+    async.forEach(
+      widgetInformation.widgetIds,
+      function (widgetId, cbInstance) {
+        locales[widgetId] = {};
+
+        async.forEach(
+          availableLocales,
+          function (availableLocale, cbLocale) {
+            var localeName = availableLocale.name;
+            winston.info(
+              util.format('Requesting "%s" locale information for widget %s', localeName, widgetId)
+            );
+
+            occ.request({
+              api: util.format('/widgets/%s/locale/%s', widgetId, localeName),
+              method: 'get'
+            }, function (err, response) {
+              var error = response.errorCode ? response.message : err;
+              if (error) return callback(
+                util.format('Error requesting "%s" locale information for widget %s: %s', localeName, widgetId, error)
+              );
+
+              winston.info(
+                util.format('Success requesting "%s" locale information for widget %s', localeName, widgetId)
+              );
+              locales[widgetId][localeName] = response.localeData.custom;
+              cbLocale()
+            });
+          },
+          function (error) {
+            cbInstance();
+          }
+        )
+      },
+      function (error) {
+        widgetInformation.locales = locales;
+        callback(null, widgetInformation);
+      }
+    );
+  });
+}
+
+/**
  * Gets widget instances configurations
  *
  * @param {String} widgetType The widget type
@@ -169,8 +239,8 @@ var getWidgetsConfiguration = function (widgetType, occ, widgetInformation, call
       };
       occ.request(request, function (error, response) {
         if (error || response.errorCode) callback(error || response.message);
-        winston.info('Configuration for widget %s', instanceId);
-        winston.info(JSON.stringify(response.settings, null, 2));
+        // winston.info('Configuration for widget %s', instanceId);
+        // winston.info(JSON.stringify(response.settings, null, 2));
         //index earch configuration by widget instance ID
         settings[instanceId] = response.settings;
         cb();
@@ -196,6 +266,7 @@ module.exports = function (widgetType, occ, callback) {
     getWidgetInstances.bind(this, widgetType, occ),
     getPageLayouts.bind(this, widgetType, occ),
     getLayoutStructures.bind(this, widgetType, occ),
-    getWidgetsConfiguration.bind(this, widgetType, occ)
+    getWidgetLocales.bind(this, widgetType, occ),
+    getWidgetsConfiguration.bind(this, widgetType, occ),
   ], callback);
 };

@@ -103,125 +103,137 @@ module.exports = function (extensionName, opts, callback) {
     });
   };
 
-  async.waterfall([
-    // check the extension path locally
-    checkPath,
-    // backup the extension information
-    function (callback) {
-      if (extensionType === 'widget') {
-        backupWidget(extensionName, self._occ, storeBackup.bind(this, callback));
-      } else if (extensionType === 'config' || extensionType === 'gateway') {
-        backupSettings(extensionName, extensionType, self._occ, storeBackup.bind(this, callback));
-      } else if (extensionType === 'app-level') {
-        backupAppLevel(extensionName, self._occ, storeBackup.bind(this, callback));
-      } else {
-        callback();
-      }
-    },
-    // get the extension informatio from OCC
-    async.apply(getExtension, extensionName, self._occ),
-    // deactivate and delete the extension
-    function (application, extension, callback) {
-      deleteExtension(extension, self._occ, function (error) {
+  var backupExtensionInfo = function (callback) {
+    if (extensionType === 'widget') {
+      backupWidget(extensionName, self._occ, storeBackup.bind(this, callback));
+    } else if (extensionType === 'config' || extensionType === 'gateway') {
+      backupSettings(extensionName, extensionType, self._occ, storeBackup.bind(this, callback));
+    } else if (extensionType === 'app-level') {
+      backupAppLevel(extensionName, self._occ, storeBackup.bind(this, callback));
+    } else {
+      callback();
+    }
+  };
+
+  var getExtensionFromOCC = function (callback) {
+    getExtension(extensionName, self._occ, callback)
+  };
+
+  var deactivateExtension = function (application, extension, callback) {
+    deleteExtension(extension, self._occ, function (error) {
+      if (error) callback(error);
+      callback(null, application);
+    });
+  };
+
+  var createExtensionIfNecessary = function (application, callback) {
+    if (!application) {
+      createExtension(extensionName, self._occ, callback);
+    } else {
+      callback(null, application.repositoryId);
+    }
+  };
+
+  var generateExtensionZipFile = function (extensionId, callback) {
+    var options = {
+      'extensionId': extensionId,
+      'dir': extensionPath,
+      'widgets': extensionName,
+      'name': extensionName,
+      'isAppLevel': extensionType === 'app-level' ? true : false,
+      'isConfig': extensionType === 'config' ? true : false,
+      'isGateway': extensionType === 'gateway' ? true : false,
+      'datetime': opts.datetime
+    };
+    generateExtension(options, function (error) {
+      if (error) callback(error);
+      callback(null, extensionId);
+    });
+  };
+
+  var uploadExtension = function (extensionId, callback) {
+    var destinationName = new Date().getTime() + '_' + extensionName + '.zip';
+    uploadFile.call(
+      self,
+      extensionZipFile,
+      '/extensions/' + destinationName,
+      function (error) {
         if (error) callback(error);
-        callback(null, application);
-      });
-    },
-    // create the extension, if necessary
-    function (application, callback) {
-      if (!application) {
-        createExtension(extensionName, self._occ, callback);
-      } else {
-        callback(null, application.repositoryId);
+        callback(null, extensionId, destinationName);
       }
-    },
-    // generate a extension zip file
-    function (extensionId, callback) {
-      var options = {
-        'extensionId': extensionId,
-        'dir': extensionPath,
-        'widgets': extensionName,
-        'name': extensionName,
-        'isAppLevel': extensionType === 'app-level' ? true : false,
-        'isConfig': extensionType === 'config' ? true : false,
-        'isGateway': extensionType === 'gateway' ? true : false,
-        'datetime': opts.datetime
-      };
-      generateExtension(options, function (error) {
-        if (error) callback(error);
-        callback(null, extensionId);
-      });
-    },
-    // upload the extension file to OCC
-    function (extensionId, callback) {
-      var destinationName = new Date().getTime() + '_' + extensionName + '.zip';
-      uploadFile.call(
-        self,
-        extensionZipFile,
-        '/extensions/' + destinationName,
-        function (error) {
-          if (error) callback(error);
-          callback(null, extensionId, destinationName);
-        }
-      );
-    },
-    // finish the extension upload to OCC
-    function (extensionId, extensionName, callback) {
-      var options = {
-        'api': '/extensions',
-        'method': 'post',
-        'body': { 'name': extensionName }
-      };
-      self._occ.request(options, function (error, response) {
-        if (error || !response.success) {
-          if (response.errors) {
-            response.errors.forEach(function (error) {
-              winston.error(error);
-            });
-          }
-          callback(error || 'Error uploading the extension');
-        }
-        if (response.warnings) {
-          response.warnings.forEach(function (warning) {
-            winston.warn(warning);
+    );
+  };
+
+  var postUploadExtension = function (extensionId, extensionName, callback) {
+    var options = {
+      'api': '/extensions',
+      'method': 'post',
+      'body': { 'name': extensionName }
+    };
+    self._occ.request(options, function (error, response) {
+      if (error || !response.success) {
+        if (response.errors) {
+          response.errors.forEach(function (error) {
+            winston.error(error);
           });
         }
-        winston.info('Extension was uploaded');
-        callback(null);
-      });
-    },
-    // restore the extension information
-    function (callback) {
-      if (extensionType === 'widget') {
-        restoreWidget(extensionName, backup, self._occ, callback);
-      } else if (extensionType === 'config' || extensionType === 'gateway') {
-        restoreSettings(extensionName, extensionType, backup, self._occ, callback);
-      } else if (extensionType === 'app-level') {
-        restoreAppLevel(extensionName, backup, self._occ, callback);
-      } else {
-        callback();
+        callback(error || 'Error uploading the extension');
       }
-    },
-    function (callback) {
-      // Specifically for widget upgrade, we have to upload less file
-      // when restore is complete
-      // Uploading template to add version info (commit hash and uploaded date)
-      if (extensionType === 'widget') {
-        var widget = new Widget();
+      if (response.warnings) {
+        response.warnings.forEach(function (warning) {
+          winston.warn(warning);
+        });
+      }
+      winston.info('Extension was uploaded');
+      callback(null);
+    });
+  };
 
-        widget.on('complete', function(msg) {
-          winston.info(msg);
-          return callback();
-        });
-        widget.on('error', function(err) {
-          winston.error(err);
-          return callback();
-        });
-        widget.upload(extensionName, { files: ['less', 'template'] });
-      } else {
-        // Nothing to do. Proceed with the waterfall
-        callback();
-      }
+  var restoreExtensionInfo = function (callback) {
+    if (extensionType === 'widget') {
+      // Point where widget is restored
+      restoreWidget(extensionName, backup, self._occ, callback);
+    } else if (extensionType === 'config' || extensionType === 'gateway') {
+      restoreSettings(extensionName, extensionType, backup, self._occ, callback);
+    } else if (extensionType === 'app-level') {
+      restoreAppLevel(extensionName, backup, self._occ, callback);
+    } else {
+      callback();
     }
+  };
+
+  var finishExtensionUpgrade = function (callback) {
+    // Specifically for widget upgrade, we have to upload less file
+    // when restore is complete
+    // Uploading template to add version info (commit hash and uploaded date)
+    if (extensionType === 'widget') {
+      var widget = new Widget();
+
+      widget.on('complete', function(msg) {
+        winston.info(msg);
+        return callback();
+      });
+      widget.on('error', function(err) {
+        winston.error(err);
+        return callback();
+      });
+      widget.upload(extensionName, { files: ['less', 'template'] });
+    } else {
+      // Nothing to do. Proceed with the waterfall
+      callback();
+    }
+  };
+
+  async.waterfall([
+    checkPath,
+    backupExtensionInfo,
+    getExtensionFromOCC,
+    deactivateExtension,
+    createExtensionIfNecessary,
+    generateExtensionZipFile,
+    uploadExtension,
+    postUploadExtension,
+    restoreExtensionInfo,
+    finishExtensionUpgrade
   ], callback);
 };
