@@ -215,7 +215,8 @@ Compiler.prototype.defineCompiler = function (done) {
             presets: [path.join(self.configs.occToolsModulesPath, 'babel-preset-es2015')],
             plugins: [
               path.join(self.configs.occToolsModulesPath, 'babel-plugin-transform-decorators-legacy'),
-              path.join(self.configs.occToolsModulesPath, 'babel-plugin-transform-class-properties')
+              path.join(self.configs.occToolsModulesPath, 'babel-plugin-transform-class-properties'),
+              path.join(self.configs.occToolsModulesPath, 'babel-plugin-transform-async-to-generator'),
             ],
             cacheDirectory: true
           }

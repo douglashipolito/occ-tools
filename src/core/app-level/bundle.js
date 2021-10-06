@@ -117,7 +117,8 @@ function jsBundle(options, done) {
           presets: [path.join(occToolsModulesPath, 'babel-preset-es2015')],
           plugins: [
             path.join(occToolsModulesPath, 'babel-plugin-transform-decorators-legacy'),
-            path.join(occToolsModulesPath, 'babel-plugin-transform-class-properties')
+            path.join(occToolsModulesPath, 'babel-plugin-transform-class-properties'),
+            path.join(occToolsModulesPath, 'babel-plugin-transform-async-to-generator'),
           ],
           cacheDirectory: true
         }
