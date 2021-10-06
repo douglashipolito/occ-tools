@@ -163,7 +163,7 @@ var getWidgetLocales = function (widgetType, occ, widgetInformation, callback) {
     api: '/merchant/contentLocales?includeAllSites=true',
     method: 'get'
   }, function (err, response) {
-    var error = response.errorCode ? response.message : err;
+    var error = err || (response && response.errorCode ? response : false)
     if (error) return callback(
       util.format('Error requesting availables locales: %s', error)
     );
@@ -183,6 +183,7 @@ var getWidgetLocales = function (widgetType, occ, widgetInformation, callback) {
           availableLocales,
           function (availableLocale, cbLocale) {
             var localeName = availableLocale.name;
+
             winston.info(
               util.format('Requesting "%s" locale information for widget %s', localeName, widgetId)
             );
@@ -191,16 +192,21 @@ var getWidgetLocales = function (widgetType, occ, widgetInformation, callback) {
               api: util.format('/widgets/%s/locale/%s', widgetId, localeName),
               method: 'get'
             }, function (err, response) {
-              var error = response.errorCode ? response.message : err;
-              if (error) return callback(
-                util.format('Error requesting "%s" locale information for widget %s: %s', localeName, widgetId, error)
-              );
+              var localeData = response && response.localeData || false;
+              var error = err || (response && response.errorCode ? response.message : false);
 
-              winston.info(
-                util.format('Success requesting "%s" locale information for widget %s', localeName, widgetId)
-              );
-              locales[widgetId][localeName] = response.localeData.custom;
-              cbLocale()
+              if (error) {
+                winston.warn(
+                  util.format('"%s" locale information for widget %s not found', localeName, widgetId)
+                );
+              } else {
+                winston.info(
+                  util.format('Success requesting "%s" locale information for widget %s', localeName, widgetId)
+                );
+              }
+
+              locales[widgetId][localeName] = localeData;
+              cbLocale();
             });
           },
           function (error) {

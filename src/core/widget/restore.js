@@ -221,6 +221,45 @@ var restoreSiteAssociations = function (widgetType, backup, occ, instances, glob
   }
 };
 
+var restoreLocales = function (widgetType, backup, occ, instances, callback) {
+  async.forEach(backup.widgetIds, function (widgetId, cbRestore) {
+    var instanceId = instances[widgetId];
+    var widgetLocales = backup.locales[widgetId];
+
+    async.forEach(Object.keys(widgetLocales), function (localeName, cbLocale) {
+      var localeResource = widgetLocales[localeName];
+
+      if (!localeResource) {
+        return cbLocale();
+      }
+
+      winston.info('Restoring "%s" locale information for widget %s', localeName, instanceId);
+
+      occ.request({
+        api: util.format('widgets/%s/locale/en', instanceId),
+        method: 'put',
+        headers: {
+          'X-CCAsset-Language': 'en'
+        },
+        body: localeResource
+      }, function (err) {
+        if (err) {
+          winston.warn(
+            util.format('Unable to restore "%s" locale information for widget %s', localeName, instanceId)
+          );
+          window.warn(JSON.stringify(localeResource, null, 2));
+        } else {
+          winston.info('Success restoring "%s" locale information for widget %s', localeName, instanceId);
+        }
+
+        cbLocale();
+      });
+    }, cbRestore);
+  }, function() {
+    callback(null, instances);
+  });
+}
+
 /**
  * Gets the new widget configuration schema.
  *
@@ -344,6 +383,7 @@ module.exports = function (widgetType, backup, occ, callback) {
     async.apply(placeInstances, widgetType, backup, occ),
     async.apply(getGlobalInstance, widgetType, backup, occ),
     async.apply(restoreSiteAssociations, widgetType, backup, occ),
+    async.apply(restoreLocales, widgetType, backup, occ),
     async.apply(getWidgetConfigurations, widgetType, backup, occ),
     async.apply(restoreConfiguration, widgetType, backup, occ)
   ], callback);
