@@ -24,9 +24,14 @@ const downloadTemplate = async (occ, widgetInfo, settings) => {
   const templateFilePath = path.join(templateDir, 'display.template');
   const describeCodePath =`widgets/${widgetInfo.item.instances[0].id}/code`;
 
-  const file = await occ.promisedRequest(describeCodePath);
-  winston.debug('Writing %s template in %s', widgetInfo.item.widgetType, templateDir);
-  fs.outputFileSync(templateFilePath, file.source);
+  try {
+    const file = await occ.promisedRequest(describeCodePath);
+    winston.debug('Writing %s template in %s', widgetInfo.item.widgetType, templateDir);
+    fs.outputFileSync(templateFilePath, file.source);
+  } catch (e) {
+    winston.error('Error downloading the template for %s', widgetInfo.item.widgetType);
+  }
+
 };
 
 /**
@@ -53,7 +58,7 @@ const downloadLess = async (occ, widgetInfo, settings) => {
  * @param  {Object} settings   The setting object.
  */
 const downloadAllJs = async (occ, widgetInfo, settings) => {
-  if (widgetInfo.folder === 'oracle') return;
+  if (widgetInfo.folder === 'oracle' || !widgetInfo.item.jsEditable) return;
   winston.info('Downloading %s js files...', widgetInfo.item.widgetType);
   const describeJsPath = `widgetDescriptors/${widgetInfo.item.id}/javascript`;
   var jsPath = path.join(getWidgetPath(settings, widgetInfo), 'js');
@@ -191,7 +196,7 @@ const downloadConfigLocales = async (occ, widget, widgetId, configPath, settings
  * @param  {Object} settings   The setting object.
  */
 const downloadConfig = async (occ, widgetInfo, settings) => {
-  if (widgetInfo.folder === 'oracle') return;
+  if (widgetInfo.folder === 'oracle' || !widgetInfo.configurable) return;
   const widget = widgetInfo.item.widgetType;
   const widgetId =  widgetInfo.item.repositoryId;
   const configUrl = `widgetDescriptors/${widgetId}/metadata/config`;

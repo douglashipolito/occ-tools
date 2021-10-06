@@ -39,7 +39,7 @@ function writeThemeFiles(item, themeDetails, callback) {
       },
       function (callback) {
         winston.info('Writing %s additionalStyles.less', item.id);
-        fs.outputFile(path.join(themeDir, 'additionalStyles.less'), themeDetails.additionalStyles, callback);
+        fs.outputFile(path.join(themeDir, 'additionalStyles.less'), themeDetails.additionalStyles || '', callback);
       },
     ],
     callback
