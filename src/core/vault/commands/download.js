@@ -32,7 +32,7 @@ const getConfig = (opts, cb) => {
   const vaultDefaultConfigs = getDefaultConfig(cb);
 
   // Mount output path from root directory
-  const filePath = get(opts, 'file', vaultDefaultConfigs.defaultFilePath);
+  const filePath = get(opts, 'file', vaultDefaultConfigs.output);
   const outputPath = path.resolve(occToolsConfig.dir.project_base, filePath)
 
   // Mount secret path based on engine and secret
