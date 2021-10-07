@@ -352,7 +352,7 @@ Download.prototype.do_sse_variables.help = (
 );
 
 Download.prototype.do_vault_sse_variables = function(subcmd, opts, args, callback) {
-  var sse = new ServerSideExtension('admin');
+  const sse = new ServerSideExtension('admin');
 
   sse.on('complete', function(message) {
     winston.info(message);

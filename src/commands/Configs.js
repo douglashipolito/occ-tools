@@ -226,8 +226,8 @@ Configs.prototype.do_set_project.help = (
 );
 
 Configs.prototype.do_set_vault_token = function(subcmd, opts, args, callback) {
-  var occToolsConfigs = new _Configs();
-  var schema = setPromptSchema({
+  const occToolsConfigs = new _Configs();
+  const schema = setPromptSchema({
     properties: {
       'vault-code': {
         required: false,
@@ -237,11 +237,9 @@ Configs.prototype.do_set_vault_token = function(subcmd, opts, args, callback) {
     }
   });
 
-
-
   prompt.start();
 
-  prompt.get(schema, function (error, result) {
+  prompt.get(schema, (error, result) => {
     if(error) {
       if (error.message === 'canceled') {
         return callback('\nOperation canceled');
