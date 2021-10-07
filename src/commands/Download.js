@@ -351,6 +351,28 @@ Download.prototype.do_sse_variables.help = (
   '{{options}}'
 );
 
+Download.prototype.do_vault_sse_variables = function(subcmd, opts, args, callback) {
+  const sse = new ServerSideExtension('admin');
+
+  sse.on('complete', function(message) {
+    winston.info(message);
+    return callback();
+  });
+
+  sse.on('error', function(error) {
+    return callback(error);
+  });
+
+  sse.downloadVariablesFromVault(opts);
+};
+
+Download.prototype.do_vault_sse_variables.help = (
+  'Download server-side extension variables from VAULT\n\n' +
+  'Usage:\n' +
+  '     {{name}} {{cmd}} [options] \n\n' +
+  '{{options}}'
+);
+
 Download.prototype.do_sse_variables.options = [
   {
     names: ['merge', 'm'],

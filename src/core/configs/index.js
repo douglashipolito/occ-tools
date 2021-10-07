@@ -162,6 +162,17 @@ Configs.prototype.setTotpCode = function (code, cb) {
   });
 };
 
+Configs.prototype.setVaultToken = function (code, cb) {
+  const self = this;
+  self.ensureMainConfigsFile((error, configsJson) => {
+    
+    if (error) return cb(error);
+
+    configsJson['vault-token'] = code;
+    updateConfigs(configsJson, 'Set VAULT-TOKEN', cb);
+  });
+};
+
 Configs.prototype.resetLoginToken = function (cb) {
   var self = this;
 
