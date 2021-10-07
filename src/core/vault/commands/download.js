@@ -36,15 +36,15 @@ const getConfig = (opts, cb) => {
   const outputPath = path.resolve(occToolsConfig.dir.project_base, filePath)
 
   // Mount secret path based on engine and secret
-  const engine = get(opts, 'vaultEngine', vaultDefaultConfigs.vaultDefaultEngine);
-  const secret = get(opts, 'vaultSecret', vaultDefaultConfigs.vaultDefaultSecret);
+  const engine = get(opts, 'vaultEngine', vaultDefaultConfigs.engine);
+  const secret = get(opts, 'vaultSecret', vaultDefaultConfigs.secret);
   const secretPath = `${engine}/data/${secret}`;
 
   return {
     output: outputPath,
     secret: secretPath,
-    endpoint: get(opts, 'vaultEndpoint', vaultDefaultConfigs.vaultDefaultEndpoint),
-    token: get(opts, 'vaultToken', vaultDefaultConfigs.vaultDefaultToken),
+    endpoint: get(opts, 'vaultEndpoint', vaultDefaultConfigs.endpoint),
+    token: opts.vaultToken,
     certPath: path.resolve(occToolsConfig.dir.project_base, vaultDefaultConfigs.certPath)
   }
 }
