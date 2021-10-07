@@ -126,6 +126,9 @@ Configs.prototype.do_init = function(subcmd, opts, args, callback) {
       },
       function(cb) {
         occToolsConfigs.setTotpCode(result['totp-code'], cb);
+      },
+      function(cb) {
+        occToolsConfigs.setVaultToken(result['vault-token'], cb);
       }
     ], callback);
   });
@@ -217,6 +220,42 @@ Configs.prototype.do_set_project = function(subcmd, opts, args, callback) {
 
 Configs.prototype.do_set_project.help = (
   'Set an OCC Project\n\n' +
+  'Usage:\n' +
+  '     {{name}} {{cmd}} [options] \n\n' +
+  '{{options}}'
+);
+
+Configs.prototype.do_set_vault_token = function(subcmd, opts, args, callback) {
+  var occToolsConfigs = new _Configs();
+  var schema = setPromptSchema({
+    properties: {
+      'vault-code': {
+        required: false,
+        default: 'xxxxxxxxxxx',
+        description: 'Token from VAULT'
+      }
+    }
+  });
+
+
+
+  prompt.start();
+
+  prompt.get(schema, function (error, result) {
+    if(error) {
+      if (error.message === 'canceled') {
+        return callback('\nOperation canceled');
+      }else {
+        return callback(error.message);
+      }
+    }
+
+    occToolsConfigs.setVaultToken(result['vault-code'], callback);
+  });
+};
+
+Configs.prototype.do_set_vault_token.help = (
+  'Set valut token an OCC Project\n\n' +
   'Usage:\n' +
   '     {{name}} {{cmd}} [options] \n\n' +
   '{{options}}'

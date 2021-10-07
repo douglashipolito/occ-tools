@@ -1,0 +1,7 @@
+{
+  "defaultFilePath": "vault-data.json",
+  "vaultDefaultEndpoint": "https://vault-dt.mot-solutions.com",
+  "vaultDefaultToken": "{token}",
+  "vaultDefaultEngine": "DT_OCC_463909_kv",
+  "vaultDefaultSecret": "sse-variables"
+}
