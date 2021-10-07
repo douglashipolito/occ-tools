@@ -9,7 +9,7 @@ const getVaultInstance = (config) =>  {
     token: config.token,
     requestOptions: {
       ca: fs.readFileSync(
-        path.resolve(__dirname, '../certs/cert.crt')
+        config.certPath
       )
     }
   });

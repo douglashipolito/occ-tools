@@ -19,7 +19,6 @@ var _downloadVariables = require('./download-variables');
 var _uploadVariables = require('./upload-variables');
 const config = require('../config');
 const { download } = require('../vault/index.js');
-const getEnvName = require('../utils/enviromentMap.js');
 const occToolsConfigsCore = new (require('./../configs'));
 const configsData = occToolsConfigsCore.getConfigsJSON();
 
@@ -162,7 +161,7 @@ ServerSideExtension.prototype.downloadVariablesFromVault = function(options) {
   const vaultOptions = {
     vaultToken: configsData['vault-token'],
     file: 'server-side-extensions/variables.json',
-    vaultSecret: `variables.${getEnvName(config.environment.current).toLowerCase()}`
+    vaultSecret: `variables.${(config.environment.current).toLowerCase()}`
   };
 
   const callback = (message) => {

@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const get = require('lodash/get');
 const { getVaultInstance } = require('../api/vault');
-const localConfig = require('../config.json');
 const occToolsConfig = require('../../config');
+var occToolsConfigsCore = new (require('./../../configs'));
 
 // process.env.DEBUG = 'node-vault';
 // process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
@@ -16,26 +16,41 @@ const processVaultData = (data) => {
   return JSON.stringify(vaultData, null, 2);
 }
 
-const getConfig = (opts) => {
+const getDefaultConfig = (cb) => {
+  let vaultDefaultConfigs;
+  try{
+    vaultDefaultConfigs = occToolsConfigsCore.getProjectSettings().vault;
+    if (!vaultDefaultConfigs) cb('It is no VAULT config');
+    
+  } catch(error) {
+    cb(error);
+  }
+  return vaultDefaultConfigs;
+}
+
+const getConfig = (opts, cb) => {
+  const vaultDefaultConfigs = getDefaultConfig(cb);
+
   // Mount output path from root directory
-  const filePath = get(opts, 'file', localConfig.defaultFilePath);
+  const filePath = get(opts, 'file', vaultDefaultConfigs.defaultFilePath);
   const outputPath = path.resolve(occToolsConfig.dir.project_base, filePath)
 
   // Mount secret path based on engine and secret
-  const engine = get(opts, 'vaultEngine', localConfig.vaultDefaultEngine);
-  const secret = get(opts, 'vaultSecret', localConfig.vaultDefaultSecret);
+  const engine = get(opts, 'vaultEngine', vaultDefaultConfigs.vaultDefaultEngine);
+  const secret = get(opts, 'vaultSecret', vaultDefaultConfigs.vaultDefaultSecret);
   const secretPath = `${engine}/data/${secret}`;
 
   return {
     output: outputPath,
     secret: secretPath,
-    endpoint: get(opts, 'vaultEndpoint', localConfig.vaultDefaultEndpoint),
-    token: get(opts, 'vaultToken', localConfig.vaultDefaultToken)
+    endpoint: get(opts, 'vaultEndpoint', vaultDefaultConfigs.vaultDefaultEndpoint),
+    token: get(opts, 'vaultToken', vaultDefaultConfigs.vaultDefaultToken),
+    certPath: path.resolve(occToolsConfig.dir.project_base, vaultDefaultConfigs.certPath)
   }
 }
 
 const action = (subcmd, opts, args, cb) => {
-  const config = getConfig(opts);
+  const config = getConfig(opts, cb);
 
   return new Promise(async () => {
     try {
