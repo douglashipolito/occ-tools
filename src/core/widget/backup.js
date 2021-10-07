@@ -184,9 +184,7 @@ var getWidgetLocales = function (widgetType, occ, widgetInformation, callback) {
           function (availableLocale, cbLocale) {
             var localeName = availableLocale.name;
 
-            winston.info(
-              util.format('Requesting "%s" locale information for widget %s', localeName, widgetId)
-            );
+            winston.info('Requesting "%s" locale information for widget %s', localeName, widgetId);
 
             occ.request({
               api: util.format('/widgets/%s/locale/%s', widgetId, localeName),
@@ -196,13 +194,9 @@ var getWidgetLocales = function (widgetType, occ, widgetInformation, callback) {
               var error = err || (response && response.errorCode ? response.message : false);
 
               if (error) {
-                winston.warn(
-                  util.format('"%s" locale information for widget %s not found', localeName, widgetId)
-                );
+                winston.warn('"%s" locale information for widget %s not found', localeName, widgetId);
               } else {
-                winston.info(
-                  util.format('Success requesting "%s" locale information for widget %s', localeName, widgetId)
-                );
+                winston.info('Success requesting "%s" locale information for widget %s', localeName, widgetId);
               }
 
               locales[widgetId][localeName] = localeData;

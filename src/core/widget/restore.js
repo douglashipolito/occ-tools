@@ -27,7 +27,7 @@ var getWidgetConfig = function (widgetType, backup, occ, callback) {
 };
 
 /**
- * Creates the new widget instances with the same name
+ * Get existing instances from widget
  *
  * @param {String} widgetType The widget type
  * @param {Object} backup The backup information
@@ -35,12 +35,54 @@ var getWidgetConfig = function (widgetType, backup, occ, callback) {
  * @param {Object} config The widget.json
  * @param {Function} callback The callback function
  */
-var createInstances = function (widgetType, backup, occ, config, callback) {
+var getWidgetInstances = function (widgetType, backup, occ, config, callback) {
+  return occ.request({
+    api: '/widgetDescriptors/instances',
+    method: 'get',
+    qs: {
+      source: '101'
+    }
+  }, function (err, response) {
+    var existingInstances = [];
+
+    var widgetDescriptor = response.items.find(function (item) {
+      return item.widgetType === widgetType;
+    });
+
+    if (widgetDescriptor && Array.isArray(widgetDescriptor.instances)) {
+      existingInstances = widgetDescriptor.instances;
+    }
+
+    callback(null, config, existingInstances);
+  });
+}
+
+/**
+ * Creates the new widget instances with the same name
+ *
+ * @param {String} widgetType The widget type
+ * @param {Object} backup The backup information
+ * @param {Object} occ The OCC requester
+ * @param {Object} config The widget.json
+ * @param {Object} existingInstances List of instances already in occ
+ * @param {Function} callback The callback function
+ */
+var createInstances = function (widgetType, backup, occ, config, existingInstances, callback) {
   if (!config.global && backup.widget && backup.widget.instances && backup.widget.instances.length) {
-    winston.info('Creating new widget instances');
+    winston.info('Setting up instances for %s', widgetType);
+
     var newInstances = {};
     async.forEach(backup.widget.instances, function (instance, cb) {
-      // creates the new instances
+      var foundInstance = existingInstances.find(function (existingInstance) {
+        return existingInstance.displayName === instance.displayName;
+      });
+
+      if (foundInstance) {
+        winston.info('Found instance for "%s" in layout', instance.displayName);
+        newInstances[instance.id] = foundInstance.repositoryId;
+        return cb();
+      }
+
       var request = {
         'api': '/widgets',
         'method': 'post',
@@ -52,6 +94,7 @@ var createInstances = function (widgetType, backup, occ, config, callback) {
           'x-ccasset-language': 'en'
         }
       };
+
       occ.request(request, function (error, response) {
         if (error || (response && response.errorCode)) {
           return cb(error || response.message);
@@ -221,6 +264,15 @@ var restoreSiteAssociations = function (widgetType, backup, occ, instances, glob
   }
 };
 
+/**
+ * Restore widget locales
+ *
+ * @param {String} widgetType The widget type
+ * @param {Object} backup The backup information
+ * @param {Object} occ The OCC requester
+ * @param {Array} instances The new widget instances
+ * @param {Function} callback The callback function
+ */
 var restoreLocales = function (widgetType, backup, occ, instances, callback) {
   async.forEach(backup.widgetIds, function (widgetId, cbRestore) {
     var instanceId = instances[widgetId];
@@ -244,9 +296,7 @@ var restoreLocales = function (widgetType, backup, occ, instances, callback) {
         body: localeResource
       }, function (err) {
         if (err) {
-          winston.warn(
-            util.format('Unable to restore "%s" locale information for widget %s', localeName, instanceId)
-          );
+          winston.warn('Unable to restore "%s" locale information for widget %s', localeName, instanceId);
           window.warn(JSON.stringify(localeResource, null, 2));
         } else {
           winston.info('Success restoring "%s" locale information for widget %s', localeName, instanceId);
@@ -379,6 +429,7 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
 module.exports = function (widgetType, backup, occ, callback) {
   async.waterfall([
     async.apply(getWidgetConfig, widgetType, backup, occ),
+    async.apply(getWidgetInstances, widgetType, backup, occ),
     async.apply(createInstances, widgetType, backup, occ),
     async.apply(placeInstances, widgetType, backup, occ),
     async.apply(getGlobalInstance, widgetType, backup, occ),
