@@ -278,9 +278,7 @@ var restoreLocales = function (widgetType, backup, occ, instances, callback) {
     var instanceId = instances[widgetId];
     var widgetLocales = backup.locales[widgetId];
 
-    async.forEach(Object.keys(widgetLocales), function (localeName, cbLocale) {
-      var localeResource = widgetLocales[localeName];
-
+    async.forEachOf(widgetLocales, function (localeResource, localeName, cbLocale) {
       if (!localeResource) {
         return cbLocale();
       }
@@ -361,7 +359,9 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
   if (instances && configuration) {
     winston.info('Restoring widgets previous configurations');
     async.forEach(backup.widgetIds, function (instanceId, cb) {
-      var settings = backup.settings[instanceId];
+      var instanceMetadata = backup.instancesMetadata[instanceId];
+      var settings = instanceMetadata.settings;
+
       if (settings && Object.keys(settings).length) {
         // get the instance information
         var instance = backup.widget.instances.find(function (instance) {
@@ -376,7 +376,7 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
         });
 
         // update the instance configuration
-        var request = {
+        occ.request({
           'api': util.format('/widgets/%s', instances[instanceId]),
           'method': 'put',
           'body': {
@@ -389,8 +389,7 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
           'headers': {
             'x-ccasset-language': 'en'
           }
-        };
-        occ.request(request, function (error, response) {
+        }, function (error, response) {
           response = response || {};
 
           if (error){

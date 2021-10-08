@@ -41,142 +41,152 @@ var routes = { };
 routes.mainHtmlPage = function () {
   var proxyInstance = this;
 
+  var mainHtmlCallback = function ($, req, resp) {
+    //Adding occ proxy context
+    $('html').addClass('occpc');
+
+    if(!proxyInstance.options.noLess) {
+      //Include widgetsCSS
+      $('head').append('<link rel="stylesheet" id="occ-proxy-widgets-css" href="/occ-proxy-widgets-css/widgets.css" />');
+
+      if(proxyInstance.options.theme) {
+        $('head').append('<link rel="stylesheet" id="occ-proxy-theme-css" href="/occ-styleguide/theme.css" />');
+      }
+    }
+
+    //Include widgets area css
+    $('head').append('<style id="occ-proxy-widgets-area-css">' + fs.readFileSync(path.join(__dirname, 'static_replaces', 'widgets-area-style.css'), 'utf8') + '</style>');
+
+    proxyInstance.currentMainPage = req.url;
+
+    //Adding socket io scripts
+    proxyInstance.socket.addSocketIOScripts($, req, resp);
+
+    var additionalContextInfoScript = fs.readFileSync(path.join(__dirname, 'static_replaces', 'additional-context-info.js'), 'utf8');
+    additionalContextInfoScript = additionalContextInfoScript.replace(/#OCC_TOOLS_VERSION/g, config.occToolsVersion);
+    additionalContextInfoScript = additionalContextInfoScript.replace(/#OCC_VERSION/g, resp.headers['oraclecommercecloud-version']);
+    additionalContextInfoScript = additionalContextInfoScript.replace(/#IP/g, config.currentIP);
+    additionalContextInfoScript = additionalContextInfoScript.replace(/#OCC_TOOLS_PATH/g, config.occToolsPath);
+    additionalContextInfoScript = additionalContextInfoScript.replace(/#OCC_TOOLS_PROXY_ENV/g, proxyInstance.options.environment.current);
+
+    var widgetsData = {};
+    proxyInstance.eachWidget(function (widget) {
+      widgetsData[widget.widgetName] = widget;
+      widgetsData[widget.widgetName].$data = {};
+      widgetsData[widget.widgetName].activate = '#REMOVE_QUOTEfunction () { oe.tools.setWidgetState(this.widgetName, true)}#REMOVE_QUOTE';
+      widgetsData[widget.widgetName].disable = '#REMOVE_QUOTEfunction () { oe.tools.setWidgetState(this.widgetName, false)}#REMOVE_QUOTE';
+      widgetsData[widget.widgetName].locales = {};
+
+      if(widget.active) {
+        Object.keys(widget.widgetFiles.locales).forEach(function (localeKey) {
+          var localePath = widget.widgetFiles.locales[localeKey];
+          widgetsData[widget.widgetName].locales[localeKey] = fs.readFileSync(localePath, 'utf8');
+        });
+      }
+    });
+    widgetsData = JSON.stringify(widgetsData);
+    widgetsData = widgetsData.replace(/"#REMOVE_QUOTE/g, '').replace(/#REMOVE_QUOTE"/g, '');
+
+    additionalContextInfoScript = additionalContextInfoScript.replace(/#WIDGETS/g, widgetsData);
+
+    $('body').append('<script>' + additionalContextInfoScript + '</script>');
+    $('body').append('<script>' + fs.readFileSync(path.join(__dirname, 'static_replaces', 'refresh-admin-token.js'), 'utf8') + '</script>');
+
+    // Include toogle overlay button
+    $('body').append('<a onclick="oe.tools.toggleWidgetsOverlay(); return false;" class="occ-tools-proxy-toogle-overlay" href="#toogle-overlay">[Overlay]</a>');
+
+    //Hide the preview bar
+    if(proxyInstance.options.hidePreviewBar) {
+      $('head').append('<style> #previewBar { display: none !important; } #page.preview { padding-top: 0 !important } </style>')
+    }
+
+    /**
+     * Region Template
+     */
+    var regionTemplateScript = $('script#region-template');
+    var regionTemplateHtml = fs.readFileSync(path.join(__dirname, 'static_replaces', 'region-template-fragment.html'), 'utf8');
+
+    regionTemplateScript.before('<script src="/occ-proxy-manage-widgets.js"></script>');
+    regionTemplateScript.text(regionTemplateHtml);
+
+    proxyInstance.proxyServer.setRoute({
+      phase: 'request',
+      url: 'occ-proxy-manage-widgets.js',
+      callback: function (req, resp) {
+        var widgetsTemplates = {
+            hasWidgets: false,
+            templates: {},
+            elements: {}
+        };
+
+        var occProxyManageWidgetsJSSource = fs.readFileSync(path.join(__dirname, 'static_replaces', 'occ-proxy-manage-widgets.js'), 'utf8');
+
+        proxyInstance.eachWidget(function (widget) {
+          var templates = widget.widgetFiles.template;
+
+          if(templates.length && widget.active) {
+            widgetsTemplates.hasWidgets = true;
+            var templateFile;
+            var elementsFile = [];
+
+            if(Array.isArray(widget.widgetFiles.template)) {
+              templateFile = widget.widgetFiles.template.filter(function (templateFilePath) {
+                return /display\.template/.test(templateFilePath);
+              })[0];
+
+              elementsFile = widget.widgetFiles.template.filter(function (templateFilePath) {
+                return /\/element\//.test(templateFilePath);
+              });
+
+            } else {
+              templateFile = widget.widgetFiles.template;
+            }
+
+            widgetsTemplates.templates[widget.widgetName] = fs.readFileSync(templateFile, 'utf8');
+
+            if(elementsFile.length) {
+              widgetsTemplates.elements[widget.widgetName] = [];
+            }
+
+            elementsFile.forEach(function (elementPath) {
+              var elementName = path.basename(path.resolve(elementPath, '..', '..'));
+              var elementObject = {};
+              elementObject[elementName] = fs.readFileSync(elementPath, 'utf8');
+              widgetsTemplates.elements[widget.widgetName].push(elementObject);
+            });
+          }
+        });
+
+        occProxyManageWidgetsJSSource = occProxyManageWidgetsJSSource.replace(/#data/g, JSON.stringify(widgetsTemplates));
+
+        resp.string = occProxyManageWidgetsJSSource;
+      }
+    });
+
+    var requestCache = proxyInstance.proxyServer.cache.get(req.url);
+
+    if(requestCache) {
+      return;
+    }
+
+    proxyInstance.proxyServer.cache.set(req.url, resp.string, resp.headers);
+  };
+
   proxyInstance.proxyServer.setRoute({
     type: 'html',
     method: 'GET',
     url: /^((?!client|\/file\/|occs-admin|\/occ-proxy-panel|.*?\.(html?|template|txt)).)*$/,
     onlySuccessCode: true,
-    callback: function ($, req, resp) {
-      //Adding occ proxy context
-      $('html').addClass('occpc');
-
-      if(!proxyInstance.options.noLess) {
-        //Include widgetsCSS
-        $('head').append('<link rel="stylesheet" id="occ-proxy-widgets-css" href="/occ-proxy-widgets-css/widgets.css" />');
-
-        if(proxyInstance.options.theme) {
-          $('head').append('<link rel="stylesheet" id="occ-proxy-theme-css" href="/occ-styleguide/theme.css" />');
-        }
-      }
-
-      //Include widgets area css
-      $('head').append('<style id="occ-proxy-widgets-area-css">' + fs.readFileSync(path.join(__dirname, 'static_replaces', 'widgets-area-style.css'), 'utf8') + '</style>');
-
-      proxyInstance.currentMainPage = req.url;
-
-      //Adding socket io scripts
-      proxyInstance.socket.addSocketIOScripts($, req, resp);
-
-      var additionalContextInfoScript = fs.readFileSync(path.join(__dirname, 'static_replaces', 'additional-context-info.js'), 'utf8');
-      additionalContextInfoScript = additionalContextInfoScript.replace(/#OCC_TOOLS_VERSION/g, config.occToolsVersion);
-      additionalContextInfoScript = additionalContextInfoScript.replace(/#OCC_VERSION/g, resp.headers['oraclecommercecloud-version']);
-      additionalContextInfoScript = additionalContextInfoScript.replace(/#IP/g, config.currentIP);
-      additionalContextInfoScript = additionalContextInfoScript.replace(/#OCC_TOOLS_PATH/g, config.occToolsPath);
-      additionalContextInfoScript = additionalContextInfoScript.replace(/#OCC_TOOLS_PROXY_ENV/g, proxyInstance.options.environment.current);
-
-      var widgetsData = {};
-      proxyInstance.eachWidget(function (widget) {
-        widgetsData[widget.widgetName] = widget;
-        widgetsData[widget.widgetName].$data = {};
-        widgetsData[widget.widgetName].activate = '#REMOVE_QUOTEfunction () { oe.tools.setWidgetState(this.widgetName, true)}#REMOVE_QUOTE';
-        widgetsData[widget.widgetName].disable = '#REMOVE_QUOTEfunction () { oe.tools.setWidgetState(this.widgetName, false)}#REMOVE_QUOTE';
-        widgetsData[widget.widgetName].locales = {};
-
-        if(widget.active) {
-          Object.keys(widget.widgetFiles.locales).forEach(function (localeKey) {
-            var localePath = widget.widgetFiles.locales[localeKey];
-            widgetsData[widget.widgetName].locales[localeKey] = fs.readFileSync(localePath, 'utf8');
-          });
-        }
-      });
-      widgetsData = JSON.stringify(widgetsData);
-      widgetsData = widgetsData.replace(/"#REMOVE_QUOTE/g, '').replace(/#REMOVE_QUOTE"/g, '');
-
-      additionalContextInfoScript = additionalContextInfoScript.replace(/#WIDGETS/g, widgetsData);
-
-      $('body').append('<script>' + additionalContextInfoScript + '</script>');
-      $('body').append('<script>' + fs.readFileSync(path.join(__dirname, 'static_replaces', 'refresh-admin-token.js'), 'utf8') + '</script>');
-
-      // Include toogle overlay button
-      $('body').append('<a onclick="oe.tools.toggleWidgetsOverlay(); return false;" class="occ-tools-proxy-toogle-overlay" href="#toogle-overlay">[Overlay]</a>');
-
-      //Hide the preview bar
-      if(proxyInstance.options.hidePreviewBar) {
-        $('head').append('<style> #previewBar { display: none !important; } #page.preview { padding-top: 0 !important } </style>')
-      }
-
-      /**
-       * Region Template
-       */
-      var regionTemplateScript = $('script#region-template');
-      var regionTemplateHtml = fs.readFileSync(path.join(__dirname, 'static_replaces', 'region-template-fragment.html'), 'utf8');
-
-      regionTemplateScript.before('<script src="/occ-proxy-manage-widgets.js"></script>');
-      regionTemplateScript.text(regionTemplateHtml);
-
-      proxyInstance.proxyServer.setRoute({
-        phase: 'request',
-        url: 'occ-proxy-manage-widgets.js',
-        callback: function (req, resp) {
-          var widgetsTemplates = {
-              hasWidgets: false,
-              templates: {},
-              elements: {}
-          };
-
-          var occProxyManageWidgetsJSSource = fs.readFileSync(path.join(__dirname, 'static_replaces', 'occ-proxy-manage-widgets.js'), 'utf8');
-
-          proxyInstance.eachWidget(function (widget) {
-            var templates = widget.widgetFiles.template;
-
-            if(templates.length && widget.active) {
-              widgetsTemplates.hasWidgets = true;
-              var templateFile;
-              var elementsFile = [];
-
-              if(Array.isArray(widget.widgetFiles.template)) {
-                templateFile = widget.widgetFiles.template.filter(function (templateFilePath) {
-                  return /display\.template/.test(templateFilePath);
-                })[0];
-
-                elementsFile = widget.widgetFiles.template.filter(function (templateFilePath) {
-                  return /\/element\//.test(templateFilePath);
-                });
-
-              } else {
-                templateFile = widget.widgetFiles.template;
-              }
-
-              widgetsTemplates.templates[widget.widgetName] = fs.readFileSync(templateFile, 'utf8');
-
-              if(elementsFile.length) {
-                widgetsTemplates.elements[widget.widgetName] = [];
-              }
-
-              elementsFile.forEach(function (elementPath) {
-                var elementName = path.basename(path.resolve(elementPath, '..', '..'));
-                var elementObject = {};
-                elementObject[elementName] = fs.readFileSync(elementPath, 'utf8');
-                widgetsTemplates.elements[widget.widgetName].push(elementObject);
-              });
-            }
-          });
-
-          occProxyManageWidgetsJSSource = occProxyManageWidgetsJSSource.replace(/#data/g, JSON.stringify(widgetsTemplates));
-
-          resp.string = occProxyManageWidgetsJSSource;
-        }
-      });
-
-      var requestCache = proxyInstance.proxyServer.cache.get(req.url);
-
-      if(requestCache) {
-        return;
-      }
-
-      proxyInstance.proxyServer.cache.set(req.url, resp.string, resp.headers);
-    }
+    callback: mainHtmlCallback
   });
+
+  proxyInstance.proxyServer.setRoute({
+    type: 'html',
+    method: 'POST',
+    url: /^((?!client|\/file\/|occs-admin|\/occ-proxy-panel|.*?\.(html?|template|txt)).)*$/,
+    onlySuccessCode: true,
+    callback: mainHtmlCallback
+  })
 };
 
 /**

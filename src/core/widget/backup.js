@@ -3,7 +3,7 @@
 var util = require('util');
 var winston = require('winston');
 var async = require('async');
-const { forEach } = require('lodash');
+var get = require('lodash/get');
 
 /**
  * Reduces multiples arrays into one final array.
@@ -155,7 +155,7 @@ var getLayoutStructures = function (widgetType, occ, widgetInformation, layoutId
  * @param {Object} widgetInformation Widget information
  * @param {Function} callback The callback function
  */
-var getWidgetLocales = function (widgetType, occ, widgetInformation, callback) {
+var getWidgetsLocales = function (widgetType, occ, widgetInformation, callback) {
   // Get available locales from all sites
   winston.info('Requesting available locales to OCC');
 
@@ -163,7 +163,7 @@ var getWidgetLocales = function (widgetType, occ, widgetInformation, callback) {
     api: '/merchant/contentLocales?includeAllSites=true',
     method: 'get'
   }, function (err, response) {
-    var error = err || (response && response.errorCode ? response : false)
+    var error = err || (response && response.errorCode ? response : false);
     if (error) return callback(
       util.format('Error requesting availables locales: %s', error)
     );
@@ -217,17 +217,22 @@ var getWidgetLocales = function (widgetType, occ, widgetInformation, callback) {
 }
 
 /**
- * Gets widget instances configurations
+ * Gets widget instances metadata
+ * Metadata includes:
+ * - configurations
+ * - fragments
+ * - elementized widgets templates
  *
  * @param {String} widgetType The widget type
  * @param {Object} occ The OCC requester
  * @param {Object} widgetInformation Widget information
  * @param {Function} callback The callback function
  */
-var getWidgetsConfiguration = function (widgetType, occ, widgetInformation, callback) {
+var getWidgetsMetadata = function (widgetType, occ, widgetInformation, callback) {
   if (widgetInformation.widgetIds.length) {
     winston.info('Getting the current widget configurations');
-    var settings = {};
+    var instancesMetadata = {};
+
     // get the widget configuration for each instance
     async.forEach(widgetInformation.widgetIds, function (instanceId, cb) {
       var request = {
@@ -239,20 +244,87 @@ var getWidgetsConfiguration = function (widgetType, occ, widgetInformation, call
       };
       occ.request(request, function (error, response) {
         if (error || response.errorCode) callback(error || response.message);
+        // TODO: uncomment
         // winston.info('Configuration for widget %s', instanceId);
         // winston.info(JSON.stringify(response.settings, null, 2));
-        //index earch configuration by widget instance ID
-        settings[instanceId] = response.settings;
+        instancesMetadata[instanceId] = response;
+
         cb();
       });
     }, function (error) {
-      widgetInformation.settings = settings;
+      widgetInformation.instancesMetadata = instancesMetadata;
       callback(null, widgetInformation);
     });
   } else {
     callback(null, widgetInformation);
   }
 };
+
+/**
+ * Elementized widgets structures rely on template structure
+ *
+ * @param {String} widgetType The widget type
+ * @param {Object} occ The OCC requester
+ * @param {Object} widgetInformation Widget information
+ * @param {Function} callback The callback function
+ */
+var getWidgetsTemplates = function (widgetType, occ, widgetInformation, callback) {
+  if (widgetInformation.instancesMetadata) {
+    var layouts = {};
+
+    async.forEachOf(widgetInformation.instancesMetadata, function (instanceMetaData, instanceId, cbMetadata) {
+      // var fragments = get(instanceMetaData, 'fragments', []);
+
+      // var instanceFragments = fragments.filter(function (fragment) {
+      //   return fragment.type === 'instance';
+      // });
+        
+      // Get widget layout id
+      var instance = get(instanceMetaData, 'instance', null);
+      var widgetLayoutId = get(instance, 'currentLayout.widgetLayoutDescriptor.repositoryId');
+
+      if (!widgetLayoutId) {
+        var widgetLayouts = get(instance, 'widgetLayoutDescriptor.layouts', []);
+        var widgetLayoutIdFallback = widgetLayouts.find(function (widgetLayout) {
+          return widgetLayout.repositoryId;
+        });
+
+        if (widgetLayoutIdFallback) {
+          widgetLayoutId = widgetLayoutIdFallback.repositoryId;
+        }
+      }
+
+      if (widgetLayoutId) {
+        occ.request({
+          api: util.format('widgets/%s/layout/%s', instanceId, widgetLayoutId),
+          method: 'get',
+        }, function (err, response) {
+          var error = err || (response && response.errorCode ? response.message : false);
+
+          if (error) {
+            return callback(
+              util.format('Error requesting default template for instance %s', instanceId)
+            );
+          } else {
+            winston.info('Success requesting default template for instance %s', instanceId);
+          }
+
+          layouts[instanceId] = response.source;
+          cbMetadata();
+        });
+      } else {
+        winston.warn('Instance %s has no template to backup', instanceId);
+        cbMetadata();
+      }
+    }, function (err) {
+      widgetInformation.layouts = layouts;
+      callback(null, widgetInformation);
+    });
+  } else {
+    // Bypass for debugging above stuff
+    callback(null, widgetInformation);
+  }
+}
 
 /**
  * Get all widget information as backup
@@ -266,7 +338,8 @@ module.exports = function (widgetType, occ, callback) {
     getWidgetInstances.bind(this, widgetType, occ),
     getPageLayouts.bind(this, widgetType, occ),
     getLayoutStructures.bind(this, widgetType, occ),
-    getWidgetLocales.bind(this, widgetType, occ),
-    getWidgetsConfiguration.bind(this, widgetType, occ),
+    getWidgetsLocales.bind(this, widgetType, occ),
+    getWidgetsMetadata.bind(this, widgetType, occ),
+    getWidgetsTemplates.bind(this, widgetType, occ)
   ], callback);
 };
