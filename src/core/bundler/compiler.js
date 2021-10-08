@@ -216,7 +216,7 @@ Compiler.prototype.defineCompiler = function (done) {
             plugins: [
               path.join(self.configs.occToolsModulesPath, 'babel-plugin-transform-decorators-legacy'),
               path.join(self.configs.occToolsModulesPath, 'babel-plugin-transform-class-properties'),
-              path.join(self.configs.occToolsModulesPath, 'babel-plugin-transform-async-to-generator'),
+              path.join(self.configs.occToolsModulesPath, 'babel-plugin-transform-async-to-promises'),
             ],
             cacheDirectory: true
           }
