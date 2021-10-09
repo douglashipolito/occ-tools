@@ -5,7 +5,7 @@ var path = require('path');
 var util = require('util');
 var async = require('async');
 var winston = require('winston');
-
+var get = require('lodash');
 var _configs = require('../config');
 
 /**
@@ -31,15 +31,15 @@ function writeThemeFiles(item, themeDetails, callback) {
     [
       function (callback) {
         winston.info('Writing %s styles.less', item.id);
-        fs.outputFile(path.join(themeDir, 'styles.less'), themeDetails.styles, callback);
+        fs.outputFile(path.join(themeDir, 'styles.less'), get(themeDetails, 'styles', ''), callback);
       },
       function (callback) {
         winston.info('Writing %s variables.less', item.id);
-        fs.outputFile(path.join(themeDir, 'variables.less'), themeDetails.variables, callback);
+        fs.outputFile(path.join(themeDir, 'variables.less'), get(themeDetails, 'variables', ''), callback);
       },
       function (callback) {
         winston.info('Writing %s additionalStyles.less', item.id);
-        fs.outputFile(path.join(themeDir, 'additionalStyles.less'), themeDetails.additionalStyles, callback);
+        fs.outputFile(path.join(themeDir, 'additionalStyles.less'), get(themeDetails, 'additionalStyles', ''), callback);
       },
     ],
     callback

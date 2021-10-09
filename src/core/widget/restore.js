@@ -359,8 +359,7 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
   if (instances && configuration) {
     winston.info('Restoring widgets previous configurations');
     async.forEach(backup.widgetIds, function (instanceId, cb) {
-      var instanceMetadata = backup.instancesMetadata[instanceId];
-      var settings = instanceMetadata.settings;
+      var settings = backup.settings[instanceId];
 
       if (settings && Object.keys(settings).length) {
         // get the instance information
@@ -410,12 +409,224 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
       }
     }, function (error) {
       if (error) callback(error);
+      callback(null, instances);
+    });
+  } else {
+    callback(null, instances);
+  }
+};
+
+var restoreElementizedWidgetsLayout = function (widgetType, backup, occ, instances, callback) {
+  /**
+   * Sanitize widget layout source for payload
+   * TODO: move to utils
+   *
+   * @param {String} layoutSource
+   * @return {String} clean layoutSource
+   */
+  var sanitizeLayoutSource = function (layoutSource) {
+    return layoutSource.replace(/<!-- ko setContextVariable: [\s\S]*? \/ko -->/gm, "");
+  }
+
+  /**
+   * Sanitize element fragment for payload
+   * TODO: move to utils
+   *
+   * @param {String} layoutSource
+   * @return {String} clean layoutSource
+   */
+  var sanitizeElementFragment = function (fragment) {
+    var elementInstance = Object.assign({}, fragment);
+
+    // Delete unnecessary attributes for payload
+    delete elementInstance.repositoryId;
+    delete elementInstance.source;
+    delete elementInstance.inline;
+    delete elementInstance.children;
+    delete elementInstance.title;
+    delete elementInstance.previewText;
+    delete elementInstance.previewText;
+    // delete elementInstance.configOptions;
+
+    // Move configs to top level data since this is expected to reconfigure elements configuration
+    var elementConfig = elementInstance.config;
+    delete elementInstance.config;
+
+    Object.keys(elementConfig).map(function (configName) {
+      elementInstance[configName] = elementConfig[configName].values;
+    });
+
+    // Cleanup unnecessary imageConfig attributes
+    if (elementInstance.imageConfig) {
+      delete elementInstance.imageConfig.titleTextId
+      delete elementInstance.imageConfig.altTextId
+    }
+
+    // Cleanup unnecessary richTextConfig attributes
+    if (elementInstance.richTextConfig) {
+      delete elementInstance.richTextConfig.sourceMedia
+    }
+
+    return elementInstance;
+  }
+
+  /**
+   * Get element fragment tag id
+   * TODO: move to utils
+   *
+   * @param {Object} fragment
+   * @returns {String}
+   */
+  var getFragmentId = function (fragmentTag) {
+    return fragmentTag.split("@")[1];
+  }
+
+  /**
+   * Get element fragment tag name
+   * TODO: move to utils
+   *
+   * @param {Object} fragment
+   * @returns {String}
+   */
+  var getFragmentName = function (fragmentTag) {
+    return fragmentTag.split("@")[0];
+  }
+
+  /**
+   * Ensure new element instances are created
+   * TODO: move to utils
+   *
+   * @param {String} layoutSource 
+   * @param {Array<Object>} fragments array of element fragments
+   * @param {Function} cbFragments
+   */
+  var prepareElementFragments = function (occ, instanceId, layout, layoutSource, cbFragments) {
+    var newFragments = [];
+
+    // Create new fragment for each fragment and replace repositoryId and tag as per DCU
+    // If id is not found in templateSource exclude it from fragments
+    async.forEach(layout.fragments, function (fragment, cbFragment) {
+      var elementTagId = getFragmentId(fragment.tag);
+      var elementTagName = getFragmentName(fragment.tag);
+
+      // If fragment is not in template, then it's disabled and we don't need to include it
+      if (!elementTagId || !layoutSource.includes(elementTagId)) {
+        winston.warn('Disabling element instance "%s" since it is not in widget layout', fragment.text || fragment.tag);
+        return cbFragment();
+      }
+
+      // Generating new element instance for existing fragment
+      var newFragment = sanitizeElementFragment(fragment);
+
+      occ.request({
+        api: util.format('widgets/%s/element/%s', instanceId, elementTagName),
+        method: 'post',
+        headers: {
+          'x-ccasset-language': 'en'
+        }
+      }, function (err, response) {
+        var error = err || (response && response.errorCode ? response.message : false);
+
+        if (error) {
+          winston.error('Error restoring element instance "%s" for widget "%s" (%s)', fragment.tag, layout.displayName, instanceId);
+          winston.error(JSON.stringify(error, null, 2));
+        } else {
+          newFragment.oldTag = fragment.tag;
+          newFragment.tag = response.tag;
+          newFragment.repositoryId = response.repositoryId;
+
+          winston.info('New element instance generated with id %s', fragment.repositoryId);
+          newFragments.push(newFragment);
+        }
+
+        cbFragment();
+      });
+    }, function(err) {
+      cbFragments(null, newFragments);
+    });
+  };
+
+  /**
+   * Replace old element tags by new tags in template
+   * TODO: Move to utils
+   *
+   * @param {String} layoutSource 
+   * @param {Array<Fragment>} fragments 
+   * @param {Function} cbFragments
+   */
+  var replaceElementFragments = function (layoutSource, fragments) {
+    return fragments.reduce(function (result, fragment) {
+      var oldSnippet = util.format('id: \'%s\'', getFragmentId(fragment.oldTag));
+      var newSnippet = util.format('id: \'%s\'', fragment.repositoryId);
+
+      return result.replace(oldSnippet, newSnippet);
+    }, layoutSource);
+  };
+
+  // Reminder: keep this here, don't move to utils
+  if (backup.layouts && Object.keys(backup.layouts).length) {
+    winston.info('Restoring elementized widgets for "%s" widget', widgetType);
+
+    // Restore each elementized widget instance
+    async.forEachOf(backup.layouts, function (layout, widgetId, cbMetadata) {
+      // Get ref id from widget id
+      var instanceId = instances[widgetId];
+
+      if (!layout.fragments) {
+        winston.info('Widget instance "%s" (%s) has no elements in layout. Skipping...', layout.displayName, instanceId);
+        return cbMetadata();
+      }
+
+      // Remove setVariables binding
+      var sanitizedLayoutSource = sanitizeLayoutSource(layout.layoutSource);
+
+      // Generate new fragments if needed
+      prepareElementFragments(occ, instanceId, layout, sanitizedLayoutSource, function (err, newFragments) {
+        var payload = {};
+
+        // Add widget config to payload
+        payload.widgetConfig = {};
+        payload.widgetConfig.name = layout.displayName;
+        payload.widgetConfig.notes = '';
+
+        // Add fragments to payload
+        payload.layoutConfig = [];
+        payload.layoutConfig.push({ fragments: newFragments });
+
+        // Add layout source to payload
+        payload.layoutSource = replaceElementFragments(sanitizedLayoutSource, newFragments);
+        payload.layoutDescriptorId = layout.layoutDescriptorId;
+
+        winston.info('Restoring elementized widget layout for instance "%s" (%s)', layout.displayName, instanceId);
+
+        // Update widget instance with inner layout data
+        occ.request({
+          api: util.format('/widgets/%s', instanceId),
+          method: 'put',
+          headers: {
+            'x-ccasset-Language': 'en'
+          },
+          body: payload
+        }, function (err, response) {
+          var error = err || (response && response.errorCode ? response.message : false);
+
+          if (error) {
+            winston.error('Error restoring elementized widget layout for instance "%s" (%s)', layout.displayName, instanceId);
+            winston.error(JSON.stringify(error, null, 2));
+          } else {
+            winston.info('Widget instance "%s" (%s) layout successfully restored. Restored %s element instances', layout.displayName, instanceId, newFragments.length);
+          }
+
+          cbMetadata();
+        });
+      });
+    }, function (err) {
       callback();
     });
   } else {
     callback();
   }
-};
+}
 
 /**
  * Restores a widget backup
@@ -435,6 +646,7 @@ module.exports = function (widgetType, backup, occ, callback) {
     async.apply(restoreSiteAssociations, widgetType, backup, occ),
     async.apply(restoreLocales, widgetType, backup, occ),
     async.apply(getWidgetConfigurations, widgetType, backup, occ),
-    async.apply(restoreConfiguration, widgetType, backup, occ)
+    async.apply(restoreConfiguration, widgetType, backup, occ),
+    async.apply(restoreElementizedWidgetsLayout, widgetType, backup, occ)
   ], callback);
 };

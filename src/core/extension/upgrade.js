@@ -227,13 +227,13 @@ module.exports = function (extensionName, opts, callback) {
   async.waterfall([
     checkPath,
     backupExtensionInfo,
-    // getExtensionFromOCC,
-    // deactivateExtension,
-    // createExtensionIfNecessary,
-    // generateExtensionZipFile,
-    // uploadExtension,
-    // postUploadExtension,
-    // restoreExtensionInfo,
-    // finishExtensionUpgrade
+    getExtensionFromOCC,
+    deactivateExtension,
+    createExtensionIfNecessary,
+    generateExtensionZipFile,
+    uploadExtension,
+    postUploadExtension,
+    restoreExtensionInfo,
+    finishExtensionUpgrade
   ], callback);
 };

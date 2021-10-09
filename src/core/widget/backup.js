@@ -184,7 +184,7 @@ var getWidgetsLocales = function (widgetType, occ, widgetInformation, callback) 
           function (availableLocale, cbLocale) {
             var localeName = availableLocale.name;
 
-            winston.info('Requesting "%s" locale information for widget %s', localeName, widgetId);
+            winston.info('Requesting "%s" locale information for widget instance %s', localeName, widgetId);
 
             occ.request({
               api: util.format('/widgets/%s/locale/%s', widgetId, localeName),
@@ -194,9 +194,9 @@ var getWidgetsLocales = function (widgetType, occ, widgetInformation, callback) 
               var error = err || (response && response.errorCode ? response.message : false);
 
               if (error) {
-                winston.warn('"%s" locale information for widget %s not found', localeName, widgetId);
+                winston.warn('Unavailable "%s" locale information for widget instance %s', localeName, widgetId);
               } else {
-                winston.info('Success requesting "%s" locale information for widget %s', localeName, widgetId);
+                winston.info('Success requesting "%s" locale information for widget instance %s', localeName, widgetId);
               }
 
               locales[widgetId][localeName] = localeData;
@@ -217,11 +217,7 @@ var getWidgetsLocales = function (widgetType, occ, widgetInformation, callback) 
 }
 
 /**
- * Gets widget instances metadata
- * Metadata includes:
- * - configurations
- * - fragments
- * - elementized widgets templates
+ * Gets widget instances metadata for further use in configurations and elementized widgets
  *
  * @param {String} widgetType The widget type
  * @param {Object} occ The OCC requester
@@ -231,12 +227,12 @@ var getWidgetsLocales = function (widgetType, occ, widgetInformation, callback) 
 var getWidgetsMetadata = function (widgetType, occ, widgetInformation, callback) {
   if (widgetInformation.widgetIds.length) {
     winston.info('Getting the current widget configurations');
-    var instancesMetadata = {};
+    var widgetsMetadata = {};
 
     // get the widget configuration for each instance
-    async.forEach(widgetInformation.widgetIds, function (instanceId, cb) {
+    async.forEach(widgetInformation.widgetIds, function (widgetId, cb) {
       var request = {
-        'api': util.format('/widgets/%s', instanceId),
+        'api': util.format('/widgets/%s', widgetId),
         'method': 'get',
         'headers': {
           'x-ccasset-language': 'en'
@@ -244,16 +240,11 @@ var getWidgetsMetadata = function (widgetType, occ, widgetInformation, callback)
       };
       occ.request(request, function (error, response) {
         if (error || response.errorCode) callback(error || response.message);
-        // TODO: uncomment
-        // winston.info('Configuration for widget %s', instanceId);
-        // winston.info(JSON.stringify(response.settings, null, 2));
-        instancesMetadata[instanceId] = response;
-
+        widgetsMetadata[widgetId] = response;
         cb();
       });
     }, function (error) {
-      widgetInformation.instancesMetadata = instancesMetadata;
-      callback(null, widgetInformation);
+      callback(null, widgetInformation, widgetsMetadata);
     });
   } else {
     callback(null, widgetInformation);
@@ -261,59 +252,102 @@ var getWidgetsMetadata = function (widgetType, occ, widgetInformation, callback)
 };
 
 /**
+ * Backup widgets configuration
+ *
+ * @param {String} widgetType The widget type
+ * @param {Object} occ The OCC requester
+ * @param {Object} widgetInformation Widget information
+ * @param {Object} widgetsMetadata Widget instances information
+ * @param {Function} callback The callback function
+ */
+var getWidgetsConfiguration = function (widgetType, occ, widgetInformation, widgetsMetadata, callback) {
+  if (widgetsMetadata) {
+    var settings = {};
+    async.forEachOf(widgetsMetadata, function (widgetMetadata, instanceId, cbMetadata) {
+      // winston.info('Configuration for widget %s', instanceId);
+      // winston.info(JSON.stringify(widgetMetadata.settings, null, 2));
+      winston.info('Storing configuration for instance %s: %s', instanceId, JSON.stringify(widgetMetadata.settings));
+      settings[instanceId] = widgetMetadata.settings;
+      cbMetadata();
+    }, function (e) {
+      widgetInformation.settings = settings;
+      callback(null, widgetInformation, widgetsMetadata);
+    });
+  } else {
+    callback(null, widgetInformation);
+  }
+}
+
+/**
  * Elementized widgets structures rely on template structure
  *
  * @param {String} widgetType The widget type
  * @param {Object} occ The OCC requester
  * @param {Object} widgetInformation Widget information
+ * @param {Object} widgetsMetadata Widget instances information
  * @param {Function} callback The callback function
  */
-var getWidgetsTemplates = function (widgetType, occ, widgetInformation, callback) {
-  if (widgetInformation.instancesMetadata) {
+var getElementizedWidgetsLayout = function (widgetType, occ, widgetInformation, widgetsMetadata, callback) {
+  if (widgetsMetadata) {
     var layouts = {};
 
-    async.forEachOf(widgetInformation.instancesMetadata, function (instanceMetaData, instanceId, cbMetadata) {
-      // var fragments = get(instanceMetaData, 'fragments', []);
-
-      // var instanceFragments = fragments.filter(function (fragment) {
-      //   return fragment.type === 'instance';
-      // });
-        
+    async.forEachOf(widgetsMetadata, function (widgetMetadata, instanceId, cbMetadata) {
       // Get widget layout id
-      var instance = get(instanceMetaData, 'instance', null);
-      var widgetLayoutId = get(instance, 'currentLayout.widgetLayoutDescriptor.repositoryId');
+      var instance = get(widgetMetadata, 'instance', null);
+      var instanceLayoutId = get(instance, 'currentLayout.widgetLayoutDescriptor.repositoryId');
 
-      if (!widgetLayoutId) {
-        var widgetLayouts = get(instance, 'widgetLayoutDescriptor.layouts', []);
-        var widgetLayoutIdFallback = widgetLayouts.find(function (widgetLayout) {
+      if (!instanceLayoutId) {
+        var instanceLayouts = get(instance, 'widgetLayoutDescriptor.layouts', []);
+        var layoutIdFallback = instanceLayouts.find(function (widgetLayout) {
           return widgetLayout.repositoryId;
         });
 
-        if (widgetLayoutIdFallback) {
-          widgetLayoutId = widgetLayoutIdFallback.repositoryId;
+        if (layoutIdFallback) {
+          instanceLayoutId = layoutIdFallback.repositoryId;
         }
       }
 
-      if (widgetLayoutId) {
+      // If widget has layouts, it means it supports elements and probably has a configuration
+      if (instanceLayoutId) {
+        winston.info('Widget instance %s is elementized. Storing template information', instanceId);
+
+        // Get fragments from widget layout
+        var fragments = get(widgetMetadata, 'fragments', []);
+
+        var instanceFragments = fragments.filter(function (fragment) {
+          return fragment.type === 'instance';
+        });
+
+        // Get basic information
+        var instanceDisplayName = instance.displayName;
+
         occ.request({
-          api: util.format('widgets/%s/layout/%s', instanceId, widgetLayoutId),
+          api: util.format('widgets/%s/code', instanceId),
           method: 'get',
         }, function (err, response) {
           var error = err || (response && response.errorCode ? response.message : false);
 
           if (error) {
             return callback(
-              util.format('Error requesting default template for instance %s', instanceId)
+              util.format('Error requesting default template for widget instance %s', instanceId)
             );
           } else {
-            winston.info('Success requesting default template for instance %s', instanceId);
+            winston.info('Success requesting default template for widget instance %s', instanceId);
           }
 
-          layouts[instanceId] = response.source;
+          // Gatter vital information for restoring elements layout
+          var layout = {
+            displayName: instanceDisplayName,
+            fragments: instanceFragments,
+            layoutDescriptorId: instanceLayoutId,
+            layoutSource: response.source,
+          };
+
+          layouts[instanceId] = layout;
+
           cbMetadata();
         });
       } else {
-        winston.warn('Instance %s has no template to backup', instanceId);
         cbMetadata();
       }
     }, function (err) {
@@ -321,7 +355,6 @@ var getWidgetsTemplates = function (widgetType, occ, widgetInformation, callback
       callback(null, widgetInformation);
     });
   } else {
-    // Bypass for debugging above stuff
     callback(null, widgetInformation);
   }
 }
@@ -340,6 +373,7 @@ module.exports = function (widgetType, occ, callback) {
     getLayoutStructures.bind(this, widgetType, occ),
     getWidgetsLocales.bind(this, widgetType, occ),
     getWidgetsMetadata.bind(this, widgetType, occ),
-    getWidgetsTemplates.bind(this, widgetType, occ)
+    getWidgetsConfiguration.bind(this, widgetType, occ),
+    getElementizedWidgetsLayout.bind(this, widgetType, occ)
   ], callback);
 };
