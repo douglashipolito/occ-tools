@@ -349,7 +349,8 @@ function bundleAppLevel(appLevelPath, appLevelName, done) {
           presets: [path.join(occToolsModulesPath, 'babel-preset-es2015')],
           plugins: [
             path.join(occToolsModulesPath, 'babel-plugin-transform-decorators-legacy'),
-            path.join(occToolsModulesPath, 'babel-plugin-transform-class-properties')
+            path.join(occToolsModulesPath, 'babel-plugin-transform-class-properties'),
+            path.join(occToolsModulesPath, 'babel-plugin-transform-async-to-promises'),
           ],
           cacheDirectory: true
         },
@@ -508,7 +509,8 @@ OCCProxy.prototype.transpileExtraRoute = function ({ source, fileSettings }, don
           presets: [path.join(occToolsModulesPath, 'babel-preset-es2015')],
           plugins: [
             path.join(occToolsModulesPath, 'babel-plugin-transform-decorators-legacy'),
-            path.join(occToolsModulesPath, 'babel-plugin-transform-class-properties')
+            path.join(occToolsModulesPath, 'babel-plugin-transform-class-properties'),
+            path.join(occToolsModulesPath, 'babel-plugin-transform-async-to-promises'),
           ],
           cacheDirectory: true
         }
