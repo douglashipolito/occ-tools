@@ -160,12 +160,14 @@ ServerSideExtension.prototype.downloadVariablesFromVault = function(options) {
   const self = this;
   const vaultOptions = {
     vaultToken: configsData['vault-token'],
-    file: 'server-side-extensions/variables.json',
     vaultSecret: `variables.${(config.environment.current).toLowerCase()}`
   };
 
-  const callback = (message) => {
-    console.log(message); 
+  const callback = (error) => {
+    if (error) {
+      console.log(error); 
+    }
+    
     self.emit('complete', 'Server-side extension variables download completed.');
   };
   
