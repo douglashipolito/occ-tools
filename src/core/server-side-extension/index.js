@@ -165,7 +165,7 @@ ServerSideExtension.prototype.downloadVariablesFromVault = function(options) {
 
   const callback = (error) => {
     if (error) {
-      console.log(error); 
+      return self.emit('error', error);
     }
     
     self.emit('complete', 'Server-side extension variables download completed.');
