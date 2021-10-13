@@ -18,29 +18,33 @@ function skipFile(folder, file) {
 
 function processCustomWidget(changes, filePath) {
   if (filePath.length > 1) {
-    switch (filePath[1]) {
-      case 'widget.json':
-      case 'config':
-      case 'element':
-      case 'layouts':
-      case 'images':
-        changes.widget.upgrade.add(filePath[0]);
-        break;
-      case 'js':
-      case 'js-src':
-      case 'less':
-      case 'locales':
-        changes.widget.upload.add(filePath[0]);
-        break;
-      case 'templates':
-        if (filePath[2] === 'display.template') {
-          changes.widget.upload.add(filePath[0]);
-        } else {
+    if(filePath[0] === 'oeCheckoutAddressBook') {
+      changes.widget.upgrade.add(filePath[0]);
+    } else {
+      switch (filePath[1]) {
+        case 'widget.json':
+        case 'config':
+        case 'element':
+        case 'layouts':
+        case 'images':
           changes.widget.upgrade.add(filePath[0]);
-        }
-        break;
-      default:
-        skipFile(occConfigs.dir.storefront_dir_name+'/widgets/objectedge', filePath);
+          break;
+        case 'js':
+        case 'js-src':
+        case 'less':
+        case 'locales':
+          changes.widget.upload.add(filePath[0]);
+          break;
+        case 'templates':
+          if (filePath[2] === 'display.template') {
+            changes.widget.upload.add(filePath[0]);
+          } else {
+            changes.widget.upgrade.add(filePath[0]);
+          }
+          break;
+        default:
+          skipFile(occConfigs.dir.storefront_dir_name+'/widgets/objectedge', filePath);
+      }
     }
   } else {
     skipFile(occConfigs.dir.storefront_dir_name+'/widgets/objectedge', filePath);
@@ -173,7 +177,7 @@ module.exports = function(revision, options, callback) {
 
   var processChanges = function(callback) {
     _changedFiles.forEach(function(file) {
-      if (!file) {
+      if (!file || !/^(?!.*(\.test\.|\.spec\.)).*/.test(file)) {
         return;
       }
       var filePath = file.split('/');
