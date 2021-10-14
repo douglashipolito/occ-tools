@@ -117,9 +117,7 @@ function processStorefront(changes, filePath) {
     case 'files':
       var allowedFolders = ['general', 'thirdparty', 'products', 'collections'];
       if (allowedFolders.includes(filePath[1])) {
-        changes.files[filePath[1]].add(
-          path.join.apply(null, filePath)
-        );
+        changes.files.add(path.join.apply(null, filePath));
       }
       break;
     default:
@@ -151,12 +149,7 @@ module.exports = function(revision, options, callback) {
     },
     config: new Set(),
     gateway: new Set(),
-    files: {
-      general: new Set(),
-      thirdparty: new Set(),
-      collections: new Set(),
-      products: new Set()
-    },
+    files: new Set(),
     theme: false,
     allEmails: false,
     responseFilter: false,
@@ -432,16 +425,11 @@ module.exports = function(revision, options, callback) {
           }
           break;
         case 'files':
-          Object.keys(_changes[changeType]).forEach(function(folder) {
-            _changes[changeType][folder].forEach(function(file) {
-              _deployJson.push({
-                operation: 'upload',
-                type: changeType,
-                id: file,
-                options: {
-                  folder: folder
-                }
-              });
+          _changes[changeType].forEach((file) => {
+            _deployJson.push({
+              operation: 'upload',
+              type: changeType,
+              id: file
             });
           });
           break;
