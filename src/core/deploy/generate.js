@@ -153,7 +153,7 @@ module.exports = function(revision, options, callback) {
     theme: false,
     allEmails: false,
     responseFilter: false,
-    sseVariable: false
+    sseVariable: true
   };
 
   var listChangedFiles = function(callback) {
@@ -437,7 +437,7 @@ module.exports = function(revision, options, callback) {
         case 'sseVariable':
           if (_changes[changeType]) {
             _deployJson.push({
-              operation: 'upload',
+              operation: 'deploy',
               type: changeType
             });
           }

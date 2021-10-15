@@ -114,8 +114,13 @@ module.exports = function(deployInstructions, callback) {
             callback();
           }
           break;
-        case 'sse-variables':
+        case 'sseVariable':
           switch (operation.operation) {
+            case 'deploy':
+              downloadSseVariables(() => {
+                uploadSseVariables(callback, errors, operation);
+              }, errors, operation);
+              break;
             case 'upload':
               uploadSseVariables(callback, errors, operation);
               break;
@@ -285,6 +290,18 @@ function restartSse(callback, errors, operation) {
     callback();
   });
   sse.restart(operation.options);
+}
+
+function downloadSseVariables(callback, errors, operation) {
+  var sse = new ServerSideExtension('admin');
+  sse.on('complete', function() {
+    callback();
+  });
+  sse.on('error', function(err) {
+    errors.push({ type: operation.type, id: operation.id, error: err });
+    callback();
+  });
+  sse.downloadVariablesFromVault(operation.id, operation.options);
 }
 
 function uploadSseVariables(callback, errors, operation) {
