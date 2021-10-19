@@ -340,7 +340,6 @@ module.exports = function(revision, options, callback) {
           }
           break;
         case 'email':
-        case 'sse':
           Object.keys(_changes[changeType]).forEach(site => {
             if(_changes[changeType][site].size) {
               _changes[changeType][site].forEach(email => {
@@ -355,16 +354,18 @@ module.exports = function(revision, options, callback) {
               });
             }
           });
-          // _changes[changeType].forEach(function(item) {
-          //   _deployJson.push({
-          //     operation: 'upload',
-          //     type: changeType,
-          //     id: item,
-          //     options: {
-          //       npm: true
-          //     }
-          //   });
-          // });
+          break;
+        case 'sse':
+          _changes[changeType].forEach(function(item) {
+            _deployJson.push({
+              operation: 'upload',
+              type: changeType,
+              id: item,
+              options: {
+                npm: true
+              }
+            });
+          });
           break;
         case 'stack':
         case 'search':
