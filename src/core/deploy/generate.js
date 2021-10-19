@@ -126,6 +126,18 @@ function processStorefront(changes, filePath) {
   }
 }
 
+const TYPES = {
+  ITEM: 'item',
+  PRODUCT: 'product',
+  ORDER: 'order',
+  SHOPPER: 'shopper'
+}
+function processTypes(changes, filePath) {
+  if (filePath[1] === TYPES.PRODUCT) {
+    changes.index = true;
+  }
+}
+
 module.exports = function(revision, options, callback) {
   var self = this;
   var _changedFiles;
@@ -153,7 +165,8 @@ module.exports = function(revision, options, callback) {
     theme: false,
     allEmails: false,
     responseFilter: false,
-    sseVariable: true
+    sseVariable: true,
+    index: false
   };
 
   var listChangedFiles = function(callback) {
@@ -187,6 +200,9 @@ module.exports = function(revision, options, callback) {
           break;
         case 'server-side-extensions':
           processSSE(_changes, filePath.slice(1));
+          break;
+        case 'types':
+          processTypes(_changes, filePath);
           break;
         default:
           skipFile(null, filePath);
@@ -439,6 +455,17 @@ module.exports = function(revision, options, callback) {
             _deployJson.push({
               operation: 'deploy',
               type: changeType
+            });
+          }
+          break;
+        case 'index':
+          if (_changes[changeType]) {
+            _deployJson.push({
+              operation: 'index',
+              type: changeType,
+              options: {
+                type: 'baseline-full-export'
+              }
             });
           }
           break;
