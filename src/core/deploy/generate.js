@@ -110,13 +110,13 @@ function processStorefront(changes, filePath) {
         skipFile(occConfigs.dir.storefront_dir_name, filePath);
       }
       break;
-    case 'stacks':
-      if (filePath.length > 2) {
-        changes.stack.add(filePath[1]);
-      } else {
-        skipFile(occConfigs.dir.storefront_dir_name, filePath);
-      }
-      break;
+    // case 'stacks': @TODO handle stacks
+    //   if (filePath.length > 2) {
+    //     changes.stack.add(filePath[1]);
+    //   } else {
+    //     skipFile(occConfigs.dir.storefront_dir_name, filePath);
+    //   }
+    //   break;
     case 'widgets':
       if (filePath[1] === 'objectedge' && filePath.length > 3) {
         processCustomWidget(changes, filePath.slice(2));
@@ -125,9 +125,6 @@ function processStorefront(changes, filePath) {
       } else {
         skipFile(occConfigs.dir.storefront_dir_name, filePath);
       }
-      break;
-    case 'responseFilters.json':
-      changes.responseFilter = true;
       break;
     case 'images':
       changes.files.general.add(
@@ -186,7 +183,6 @@ module.exports = function(revision, options, callback) {
     gateway: new Set(),
     files: new Set(),
     theme: false,
-    responseFilter: false,
     sseVariable: true,
     facets: false,
     index: false
@@ -376,16 +372,16 @@ module.exports = function(revision, options, callback) {
             });
           });
           break;
-        case 'stack':
-        case 'search':
-          _changes[changeType].forEach(function(item) {
-            _deployJson.push({
-              operation: 'upload',
-              type: changeType,
-              id: item
-            });
-          });
-          break;
+        // case 'stack': @TODO handle stacks
+        // case 'search': @TODO handle search
+        //   _changes[changeType].forEach(function(item) {
+        //     _deployJson.push({
+        //       operation: 'upload',
+        //       type: changeType,
+        //       id: item
+        //     });
+        //   });
+        //   break;
         case 'appLevel':
           if (_changes.appLevel.upgrade.size) {
             _deployJson.push({
@@ -409,7 +405,7 @@ module.exports = function(revision, options, callback) {
           }
           break;
         case 'config':
-        case 'gateway':
+        // case 'gateway': @TODO handle gateways
           if (_changes[changeType].size) {
             _deployJson.push({
               operation: 'upgrade',
@@ -438,7 +434,6 @@ module.exports = function(revision, options, callback) {
             });
           });
           break;
-        case 'responseFilter':
         case 'sseVariable':
           if (_changes[changeType]) {
             _deployJson.push({

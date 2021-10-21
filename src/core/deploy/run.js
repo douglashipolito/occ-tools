@@ -93,7 +93,7 @@ module.exports = function(deployInstructions, callback) {
             callback();
           }
           break;
-        // case 'search':
+        // case 'search': @TODO handle the rest of search folder
         //   if (operation.operation === 'upload') {
         //     uploadSearch(callback, errors, operation);
         //   } else {
@@ -109,14 +109,14 @@ module.exports = function(deployInstructions, callback) {
             callback();
           }
           break;
-        case 'stack':
-          if (operation.operation === 'upload') {
-            uploadStack(callback, errors, operation);
-          } else {
-            operationNotSupported(errors, operation);
-            callback();
-          }
-          break;
+        // case 'stack': @TODO handle stacks
+        //   if (operation.operation === 'upload') {
+        //     uploadStack(callback, errors, operation);
+        //   } else {
+        //     operationNotSupported(errors, operation);
+        //     callback();
+        //   }
+        //   break;
         case 'appLevel':
         case 'app-level':
           if (operation.operation === 'upload') {
@@ -232,29 +232,29 @@ function uploadEmail(callback, errors, operation) {
   email.upload(operation.id, operation.options);
 }
 
-function uploadStack(callback, errors, operation) {
-  var stack = new Stack('admin');
-  stack.on('complete', function() {
-    callback();
-  });
-  stack.on('error', function(err) {
-    errors.push({ type: operation.type, id: operation.id, error: err });
-    callback();
-  });
-  stack.upload(operation.id, {});
-}
+// function uploadStack(callback, errors, operation) { @TODO handle stacks
+//   var stack = new Stack('admin');
+//   stack.on('complete', function() {
+//     callback();
+//   });
+//   stack.on('error', function(err) {
+//     errors.push({ type: operation.type, id: operation.id, error: err });
+//     callback();
+//   });
+//   stack.upload(operation.id, {});
+// }
 
-function uploadSearch(callback, errors, operation) {
-  var search = new Search('admin');
-  search.on('complete', function() {
-    callback();
-  });
-  search.on('error', function(err) {
-    errors.push({ type: operation.type, id: operation.id, error: err });
-    callback();
-  });
-  search.upload(operation.id);
-}
+// function uploadSearch(callback, errors, operation) { @TODO handle the rest of search files
+//   var search = new Search('admin');
+//   search.on('complete', function() {
+//     callback();
+//   });
+//   search.on('error', function(err) {
+//     errors.push({ type: operation.type, id: operation.id, error: err });
+//     callback();
+//   });
+//   search.upload(operation.id);
+// }
 
 function deleteFacets(callback, errors, operation) {
   var facets = new global.remote.OccTools.prototype.do_facets();
