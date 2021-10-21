@@ -51,7 +51,7 @@ function OccTools(logger) {
 util.inherits(OccTools, Cmdln);
 
 function blockCommandsByEnvBranch(args, callback) {
-  var allowedCommands = ['version', 'configs', 'list', 'user-commands', 'browser', 'proxy', 'compile', 'generate', 'env', 'totp-code', 'use-app-key'];
+  var allowedCommands = ['version', 'configs', 'list', 'user-commands', 'browser', 'proxy', 'compile', 'generate', 'env', 'totp-code', 'vault-token', 'use-app-key'];
   var command = args[0];
   var containsHelpFlag = args.filter(function (arg) {
     return /help|--h/.test(arg);

@@ -17,6 +17,10 @@ var _listVariables = require('./list-variables');
 var _deleteVariable = require('./delete-variable');
 var _downloadVariables = require('./download-variables');
 var _uploadVariables = require('./upload-variables');
+const config = require('../config');
+const { download } = require('../vault/index.js');
+const occToolsConfigsCore = new (require('./../configs'));
+const configsData = occToolsConfigsCore.getConfigsJSON();
 
 function ServerSideExtension(environment, options) {
   if (!environment) {
@@ -150,6 +154,25 @@ ServerSideExtension.prototype.downloadVariables = function(options) {
       self.emit('complete', 'Server-side extension variables download completed.');
     }
   });
+};
+
+ServerSideExtension.prototype.downloadVariablesFromVault = function(options) {
+  const self = this;
+  const vaultOptions = {
+    vaultToken: configsData['vault-token'],
+    vaultSecret: `variables.${(config.environment.current).toLowerCase()}`
+  };
+
+  const callback = (error) => {
+    if (error) {
+      return self.emit('error', error);
+    }
+    
+    self.emit('complete', 'Server-side extension variables download completed.');
+  };
+  
+  download.action(null, vaultOptions, null, callback);
+
 };
 
 ServerSideExtension.prototype.uploadVariables = function(variableName, options) {

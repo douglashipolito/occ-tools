@@ -2,6 +2,18 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [2.0.0-beta.59] - 2021-10-08]
+
+### Added
+- Added support for async/await in es6 widgets, appLevel and third-party files
+
+## [2.0.0-beta.58] - 2021-09-10]
+
+### Added
+- Added support for vault
+- Added set-vault-token command
+- Added download vault-sse-variables option
+
 ## [2.0.0-beta.57] - 2021-09-10]
 
 ### Added
