@@ -188,6 +188,7 @@ module.exports = function(revision, options, callback) {
     theme: false,
     responseFilter: false,
     sseVariable: true,
+    facets: false,
     index: false
   };
 
@@ -213,9 +214,17 @@ module.exports = function(revision, options, callback) {
         case occConfigs.dir.storefront_dir_name:
           processStorefront(_changes, filePath.slice(1));
           break;
-        case 'search':
-          if (filePath.length >  3 && !filePath.includes('ATG') && !_ignoreSearchFolders.includes(filePath[2])) {
-            _changes.search.add(filePath.slice(1, filePath.length - 1).join('/'));
+        // case 'search':
+        //   if (filePath.length >  3 && !filePath.includes('ATG') && !_ignoreSearchFolders.includes(filePath[2])) {
+        //     _changes.search.add(filePath.slice(1, filePath.length - 1).join('/'));
+        //   } else {
+        //     skipFile(null, filePath);
+        //   }
+        //   break;
+        case 'search': 
+          if (filePath[filePath.length - 1] === 'facets.json') {
+            _changes.facets = true;
+            _changes.index = true;
           } else {
             skipFile(null, filePath);
           }
@@ -435,6 +444,15 @@ module.exports = function(revision, options, callback) {
             _deployJson.push({
               operation: 'deploy',
               type: changeType
+            });
+          }
+          break;
+        case 'facets':
+          if (_changes[changeType]) {
+            _deployJson.push({
+              operation: 'deploy',
+              type: 'facets',
+              isExternalCommand: true
             });
           }
           break;

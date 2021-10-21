@@ -31,6 +31,10 @@ module.exports = function(deployInstructions, callback) {
     1,
     function(operation, callback) {
       operation.options = operation.options || {};
+      if(operation.isExternalCommand && !(global.remote && global.remote.OccTools && global.remote.OccTools.prototype[`do_${operation.type}`])) {
+        operationNotSupported(errors, operation);
+        callback();
+      }
       switch (operation.type) {
         case 'publish':
           if (operation.operation === 'trigger') {
@@ -89,9 +93,17 @@ module.exports = function(deployInstructions, callback) {
             callback();
           }
           break;
-        case 'search':
-          if (operation.operation === 'upload') {
-            uploadSearch(callback, errors, operation);
+        // case 'search':
+        //   if (operation.operation === 'upload') {
+        //     uploadSearch(callback, errors, operation);
+        //   } else {
+        //     operationNotSupported(errors, operation);
+        //     callback();
+        //   }
+        //   break;
+        case 'facets':
+          if (operation.operation === 'deploy') {
+            deployFacets(callback, errors, operation);
           } else {
             operationNotSupported(errors, operation);
             callback();
@@ -242,6 +254,36 @@ function uploadSearch(callback, errors, operation) {
     callback();
   });
   search.upload(operation.id);
+}
+
+function deleteFacets(callback, errors, operation) {
+  var facets = new global.remote.OccTools.prototype.do_facets();
+  var cb = (err) => {
+    if(err) {
+      errors.push({ type: operation.type, id: operation.id, error: err });
+      callback(err);
+    }
+    callback();
+  };
+  facets.do_delete(null, operation.options || {}, null, cb)
+}
+
+function updateFacets(callback, errors, operation) {
+  var facets = new global.remote.OccTools.prototype.do_facets();
+  var cb = (err) => {
+    if(err) {
+      errors.push({ type: operation.type, id: operation.id, error: err });
+    }
+    callback();
+  };
+  facets.do_create(null, operation.options || {}, null, cb);
+}
+
+function deployFacets(callback, errors, operation) {
+  deleteFacets((err) => {
+    if(err) callback();
+    updateFacets(callback, errors, operation);
+  }, errors, operation);
 }
 
 function uploadFiles(callback, errors, operation) {
