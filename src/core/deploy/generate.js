@@ -441,7 +441,7 @@ module.exports = function(revision, options, callback) {
         case 'index':
           if (_changes[changeType]) {
             _deployJson.push({
-              operation: 'index',
+              operation: 'trigger',
               type: changeType,
               options: {
                 type: 'baseline-full-export'
