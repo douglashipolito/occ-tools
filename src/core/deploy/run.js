@@ -439,7 +439,7 @@ function uploadAppLevel(callback, errors, operation) {
     errors.push({ type: operation.type, id: operation.id, error: err });
     callback();
   });
-  appLevel.upload(operation.id, operation.options);
+  appLevel.upload([operation.id], operation.options);
 }
 
 function upgradeExtensions(callback, errors, operation) {
