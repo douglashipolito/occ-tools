@@ -261,7 +261,7 @@ var getWidgetsMetadata = function (widgetType, occ, widgetInformation, callback)
  * @param {Function} callback The callback function
  */
 var getWidgetsConfiguration = function (widgetType, occ, widgetInformation, widgetsMetadata, callback) {
-  if (widgetsMetadata) {
+  if (widgetsMetadata && typeof widgetsMetadata !== 'function') {
     var settings = {};
     async.forEachOf(widgetsMetadata, function (widgetMetadata, instanceId, cbMetadata) {
       // winston.info('Configuration for widget %s', instanceId);
@@ -274,6 +274,7 @@ var getWidgetsConfiguration = function (widgetType, occ, widgetInformation, widg
       callback(null, widgetInformation, widgetsMetadata);
     });
   } else {
+    callback = widgetsMetadata;
     callback(null, widgetInformation);
   }
 }
@@ -288,7 +289,7 @@ var getWidgetsConfiguration = function (widgetType, occ, widgetInformation, widg
  * @param {Function} callback The callback function
  */
 var getElementizedWidgetsLayout = function (widgetType, occ, widgetInformation, widgetsMetadata, callback) {
-  if (widgetsMetadata) {
+  if (widgetsMetadata && typeof widgetsMetadata !== 'function') {
     var layouts = {};
 
     async.forEachOf(widgetsMetadata, function (widgetMetadata, instanceId, cbMetadata) {
@@ -355,6 +356,7 @@ var getElementizedWidgetsLayout = function (widgetType, occ, widgetInformation, 
       callback(null, widgetInformation);
     });
   } else {
+    callback = widgetsMetadata;
     callback(null, widgetInformation);
   }
 }
