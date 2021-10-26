@@ -157,6 +157,7 @@ function processTypes(changes, filePath) {
 
 module.exports = function(revision, options, callback) {
   var self = this;
+  var  _currentVersion;
   var _changedFiles;
   var _deployJson = [];
   var _ignoreSearchFolders = [
@@ -188,9 +189,32 @@ module.exports = function(revision, options, callback) {
     index: false
   };
 
+  var getCurrentVersion = function(callback) {
+    var options = {
+      api: '/sitesettings/customSiteSettings',
+      method: 'get',
+      headers: {
+        'x-ccsite': 'siteUS'
+      }
+    };
+    self._occ.request(options, function (error, response) {
+      if(error) {
+        callback(error.message || error);
+      } else {
+        if (response && response.data && response.data.currentReleaseVersion) {
+          _currentVersion = response.data.currentReleaseVersion;
+        } else {
+          winston.info('This extension is not installed on site.');
+          callback('This extension is not installed on site.')
+        }
+      }
+      callback();
+    });
+  };
+
   var listChangedFiles = function(callback) {
     winston.info('Listing changed files');
-    github.listChangedFiles(revision, options.head, function(error, fileList) {
+    github.listChangedFiles(revision, _currentVersion, function(error, fileList) {
       if (error) {
         callback(error);
       } else {
@@ -474,6 +498,7 @@ module.exports = function(revision, options, callback) {
 
   async.waterfall(
     [
+      getCurrentVersion,
       listChangedFiles,
       processChanges,
       checkNotInstalledWidgets,
