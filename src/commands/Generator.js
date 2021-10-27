@@ -494,13 +494,6 @@ Generator.prototype.do_deploy.options = [
     helpArg: '<file>',
     type: 'string',
     help: '(Required) The file path where the deploy script will be stored.'
-  },
-  {
-    names: ['head', 'h'],
-    helpArg: '<head>',
-    type: 'string',
-    default: 'HEAD',
-    help: '(Optional) Specify an optional HEAD for git.'
   }
 ];
 
