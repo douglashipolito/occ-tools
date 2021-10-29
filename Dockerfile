@@ -9,7 +9,7 @@ RUN apt-get update && \
     apt-get install unzip && \
     apt-get install nano
 
-COPY ../../* /opt/occ-tools
+COPY . /opt/occ-tools
 COPY /files/ /tmp
 
 RUN chown jenkins:jenkins /tmp/config.json
