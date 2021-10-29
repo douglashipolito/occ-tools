@@ -1,0 +1,34 @@
+{
+  "projects": {
+    "base-path": "/home/jenkins/workspace",
+    "storefront-dir": "storefront",
+    "current": {
+      "path": "/home/jenkins/workspace/occ",
+      "name": "occ",
+      "env": "uat",
+      "url": "https://ccadmin-uat-zd8a.oracleoutsourcing.com",
+      "credentials": {
+        "username": "dummy-user",
+        "password": "dummy-password"
+      },
+      "theme": {
+        "id": "100001",
+        "name": "Motorola"
+      }
+    },
+    "credentials": {
+      "occ": {
+        "uat": {
+          "username": "dummy-user",
+          "password": "dummy-password"
+        }
+      }
+    }
+  },
+  "github": {
+    "type": "token",
+    "token": "1234"
+  },
+  "use-mfa-login": true,
+  "totp-code": "123456"
+}

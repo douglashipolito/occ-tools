@@ -1,0 +1,28 @@
+pipeline {
+  agent {
+    label 'docker-build-slave'
+  }
+  stages {
+    stage('checkout') {
+      steps {
+        checkout scm
+      }
+    }
+    stage('build docker image') {
+      steps {
+        sh "docker-compose -f ci/docker-compose.yaml build slave-occ-deploy"
+      }
+    }
+    stage('push docker image') {
+      steps {
+        sh "docker-compose -f ci/docker-compose.yaml push slave-occ-deploy"
+      }
+    }
+    stage('cleanup') {
+      steps {
+        cleanWs()
+        sh "docker image prune --all --force"
+      }
+    }
+  }
+}
