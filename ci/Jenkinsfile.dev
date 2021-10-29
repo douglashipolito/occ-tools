@@ -10,12 +10,12 @@ pipeline {
     }
     stage('build docker image') {
       steps {
-        sh "docker-compose -f ci/docker-compose.yaml build slave-occ-deploy"
+        sh "docker-compose -f docker-compose.yaml build slave-occ-deploy"
       }
     }
     stage('push docker image') {
       steps {
-        sh "docker-compose -f ci/docker-compose.yaml push slave-occ-deploy"
+        sh "docker-compose -f docker-compose.yaml push slave-occ-deploy"
       }
     }
     stage('cleanup') {
