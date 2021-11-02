@@ -1,3 +1,7 @@
+
+
+def localBranch
+
 pipeline {
   agent {
     label 'docker-build-slave'
@@ -6,19 +10,37 @@ pipeline {
     stage('checkout') {
       steps {
         checkout scm
+        script {
+            localBranch = "${BRANCH}".minus('origin/')
+        }
       }
     }
     stage('build docker image') {
+      when {
+          expression {
+              return localBranch == 'master'
+          }
+      }
       steps {
         sh "docker-compose -f docker-compose.yaml build slave-occ-deploy"
       }
     }
     stage('push docker image') {
+      when {
+          expression {
+              return localBranch == 'master'
+          }
+      }
       steps {
         sh "docker-compose -f docker-compose.yaml push slave-occ-deploy"
       }
     }
     stage('cleanup') {
+      when {
+          expression {
+              return localBranch == 'master'
+          }
+      }
       steps {
         cleanWs()
         sh "docker image prune --all --force"
