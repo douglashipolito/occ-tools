@@ -416,7 +416,9 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
   }
 };
 
-var restoreElementizedWidgetsLayout = function (widgetType, backup, occ, instances, callback) {
+var restoreElementizedWidgetsLayout = function (widgetType, backup, occ, instances, elementLayoutSource, callback) {
+  var layoutSectionRegex = /<!--\soc\slayout:\s.+?-->([^]+<!--\s\/oc\s-->)/gm;
+
   /**
    * Sanitize widget layout source for payload
    * TODO: move to utils
@@ -496,7 +498,7 @@ var restoreElementizedWidgetsLayout = function (widgetType, backup, occ, instanc
    * Ensure new element instances are created
    * TODO: move to utils
    *
-   * @param {String} layoutSource 
+   * @param {String} layoutSource
    * @param {Array<Object>} fragments array of element fragments
    * @param {Function} cbFragments
    */
@@ -550,8 +552,8 @@ var restoreElementizedWidgetsLayout = function (widgetType, backup, occ, instanc
    * Replace old element tags by new tags in template
    * TODO: Move to utils
    *
-   * @param {String} layoutSource 
-   * @param {Array<Fragment>} fragments 
+   * @param {String} layoutSource
+   * @param {Array<Fragment>} fragments
    * @param {Function} cbFragments
    */
   var replaceElementFragments = function (layoutSource, fragments) {
@@ -594,7 +596,19 @@ var restoreElementizedWidgetsLayout = function (widgetType, backup, occ, instanc
         payload.layoutConfig.push({ fragments: newFragments });
 
         // Add layout source to payload
-        payload.layoutSource = replaceElementFragments(sanitizedLayoutSource, newFragments);
+        var layoutSourceWithReplacedFragments = replaceElementFragments(sanitizedLayoutSource, newFragments);
+
+        // Find all the OC SECTIONS inside the template
+        // This is added by OCC or manually in the template
+        var ocSections = layoutSourceWithReplacedFragments.match(layoutSectionRegex);
+
+        // If OC Sections are found, put back the found oc sections inside the LAYOUT SOURCE
+        // This Layout Source is placed inside the widgetFolder/layouts/[layoutid]/widget.template
+        if(ocSections) {
+          layoutSourceWithReplacedFragments = elementLayoutSource.replace(layoutSectionRegex, ocSections[0]);
+        }
+
+        payload.layoutSource = layoutSourceWithReplacedFragments;
         payload.layoutDescriptorId = layout.layoutDescriptorId;
 
         winston.info('Restoring elementized widget layout for instance "%s" (%s)', layout.displayName, instanceId);
@@ -628,6 +642,22 @@ var restoreElementizedWidgetsLayout = function (widgetType, backup, occ, instanc
   }
 }
 
+function getWidgetLayoutTemplate(widgetType, backup, _occ, instances, callback) {
+  if(backup.layouts && Object.keys(backup.layouts).length) {
+    var templateFilePath = path.join(_config.dir.project_root, 'widgets', 'objectedge', widgetType, 'layouts', backup.widget.defaultLayout.name, 'widget.template');
+
+    fs.readFile(templateFilePath, { encoding: 'utf8' }, function(error, elementLayoutSource) {
+      if(error) {
+        return callback(error);
+      }
+
+      callback(null, instances, elementLayoutSource);
+    });
+  } else {
+    callback(null, instances);
+  }
+}
+
 /**
  * Restores a widget backup
  *
@@ -647,6 +677,7 @@ module.exports = function (widgetType, backup, occ, callback) {
     async.apply(restoreLocales, widgetType, backup, occ),
     async.apply(getWidgetConfigurations, widgetType, backup, occ),
     async.apply(restoreConfiguration, widgetType, backup, occ),
+    async.apply(getWidgetLayoutTemplate, widgetType, backup, occ),
     async.apply(restoreElementizedWidgetsLayout, widgetType, backup, occ)
   ], callback);
 };

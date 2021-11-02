@@ -1,6 +1,7 @@
 var util = require('util');
 var Cmdln = require('cmdln').Cmdln;
 var winston = require('winston');
+var os = require('os');
 
 const promisedCommand = require('./utils/promisedCommand');
 var Theme = require('../core/theme');
@@ -59,6 +60,50 @@ Download.prototype.do_widget.options = [{
   type: 'string',
   help: '(Optional) The destination directory that widget will downloaded (oracle|objectedge).'
 }];
+
+Download.prototype.do_widget_backup = function(subcmd, opts, args, callback) {
+  var widget = new Widget();
+  var fileName = opts.file || util.format(
+    '%s-%s-%d.json',
+    'widget',
+    args[0],
+    new Date().getTime()
+  )
+
+  widget.on('complete', function(message) {
+    winston.info(message);
+    return callback();
+  });
+
+  widget.on('error', function(error) {
+    return callback(error);
+  });
+
+  widget.backup(args[0], { dest: opts.dest, file: fileName });
+};
+
+Download.prototype.do_widget_backup.help = (
+  'Downloads widget backup from OCC.\n\n' +
+  'Usage:\n' +
+  '     {{name}} {{cmd}} <widgetName> [options] \n\n' +
+  '{{options}}'
+);
+
+Download.prototype.do_widget_backup.options = [
+  {
+    names: ['dest', 'd'],
+    helpArg: '[dest]',
+    type: 'string',
+    default: os.tmpdir(),
+    help: '(Optional) The destination directory that widget backup will downloaded.'
+  },
+  {
+    names: ['file', 'f'],
+    helpArg: '[file]',
+    type: 'string',
+    help: '(Optional) The File Name.'
+  }
+];
 
 Download.prototype.do_theme = function(subcmd, opts, args, callback) {
 

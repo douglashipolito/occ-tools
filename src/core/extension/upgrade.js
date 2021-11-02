@@ -217,7 +217,16 @@ module.exports = function (extensionName, opts, callback) {
         winston.error(err);
         return callback();
       });
-      widget.upload(extensionName, { files: ['less', 'template'] });
+
+      var filesToUpload = ['less'];
+
+      // Only upload the template if it doesn't contain the LAYOUT for the elements
+      // Otherwise it will be handle in the restore process
+      if(!backup.layouts || (backup.layouts && !Object.keys(backup.layouts).length)) {
+        filesToUpload.push('template');
+      }
+
+      widget.upload(extensionName, { files: filesToUpload });
     } else {
       // Nothing to do. Proceed with the waterfall
       callback();

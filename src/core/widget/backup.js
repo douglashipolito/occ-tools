@@ -1,9 +1,12 @@
 'use strict';
 
+var fs = require('fs-extra');
+var path = require('path');
 var util = require('util');
 var winston = require('winston');
 var async = require('async');
 var get = require('lodash/get');
+var _configs = require('../config');
 
 /**
  * Reduces multiples arrays into one final array.
@@ -345,7 +348,6 @@ var getElementizedWidgetsLayout = function (widgetType, occ, widgetInformation, 
           };
 
           layouts[instanceId] = layout;
-
           cbMetadata();
         });
       } else {
@@ -361,6 +363,18 @@ var getElementizedWidgetsLayout = function (widgetType, occ, widgetInformation, 
   }
 }
 
+function storeBackup(options, widgetInformation, callback) {
+  if(!options) {
+    return callback(null, widgetInformation);
+  }
+
+  var tempFile = path.join(options.dest, options.file);
+  winston.info('Storing backup on file %s', tempFile);
+  fs.outputFile(tempFile, JSON.stringify(widgetInformation, null, 2), function () {
+    callback(null, widgetInformation);
+  });
+}
+
 /**
  * Get all widget information as backup
  *
@@ -368,7 +382,7 @@ var getElementizedWidgetsLayout = function (widgetType, occ, widgetInformation, 
  * @param {Object} occ The OCC requester
  * @param {Function} callback The callback function,
  */
-module.exports = function (widgetType, occ, callback) {
+module.exports = function (widgetType, occ, callback, options) {
   async.waterfall([
     getWidgetInstances.bind(this, widgetType, occ),
     getPageLayouts.bind(this, widgetType, occ),
@@ -376,6 +390,7 @@ module.exports = function (widgetType, occ, callback) {
     getWidgetsLocales.bind(this, widgetType, occ),
     getWidgetsMetadata.bind(this, widgetType, occ),
     getWidgetsConfiguration.bind(this, widgetType, occ),
-    getElementizedWidgetsLayout.bind(this, widgetType, occ)
+    getElementizedWidgetsLayout.bind(this, widgetType, occ),
+    storeBackup.bind(this, options)
   ], callback);
 };
