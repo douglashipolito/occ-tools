@@ -1,0 +1,38 @@
+{
+  "projects": {
+    "base-path": "/home/jenkins/workspace",
+    "storefront-dir": "storefront",
+    "current": {
+      "path": "/home/jenkins/workspace/occ-deploy",
+      "name": "occ-deploy",
+      "env": "c2tst",
+      "url": "https://p1747239c2tst-admin.occa.ocs.oraclecloud.com",
+      "credentials": {
+        "username": "dummy-user",
+        "password": "dummy-password",
+        "secret": "dummy-secret"
+      },
+      "theme": {
+        "id": "100001",
+        "name": "Motorola"
+      },
+      "defaultLocale": "en",
+      "locales": [
+        "en",
+        "fr_CA"
+      ]
+    },
+    "credentials": {
+      "occ-platform": {
+      }
+    }
+  },
+  "github": {
+    "type": "token",
+    "token": "dummytoken"
+  },
+  "use-mfa-login": true,
+  "totp-code": "123456",
+  "use-application-key": false,
+  "vault-token": "dummy-token"
+}
