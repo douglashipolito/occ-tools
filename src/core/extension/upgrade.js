@@ -202,7 +202,7 @@ module.exports = function (extensionName, opts, callback) {
     }
   };
 
-  var finishExtensionUpgrade = function (callback) {
+  var uploadFiles = function (callback) {
     // Specifically for widget upgrade, we have to upload less file
     // when restore is complete
     // Uploading template to add version info (commit hash and uploaded date)
@@ -218,15 +218,7 @@ module.exports = function (extensionName, opts, callback) {
         return callback();
       });
 
-      var filesToUpload = ['less'];
-
-      // Only upload the template if it doesn't contain the LAYOUT for the elements
-      // Otherwise it will be handle in the restore process
-      if(!backup.layouts || (backup.layouts && !Object.keys(backup.layouts).length)) {
-        filesToUpload.push('template');
-      }
-
-      widget.upload(extensionName, { files: filesToUpload });
+      widget.upload(extensionName, { files: ['less', 'template'] });
     } else {
       // Nothing to do. Proceed with the waterfall
       callback();
@@ -242,7 +234,7 @@ module.exports = function (extensionName, opts, callback) {
     generateExtensionZipFile,
     uploadExtension,
     postUploadExtension,
-    restoreExtensionInfo,
-    finishExtensionUpgrade
+    uploadFiles,
+    restoreExtensionInfo
   ], callback);
 };

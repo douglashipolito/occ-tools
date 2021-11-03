@@ -417,6 +417,11 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
 };
 
 var restoreElementizedWidgetsLayout = function (widgetType, backup, occ, instances, elementLayoutSource, callback) {
+  // No layout source available
+  if(typeof elementLayoutSource === 'function') {
+    callback = elementLayoutSource;
+  }
+
   var layoutSectionRegex = /<!--\soc\slayout:\s.+?-->([^]+<!--\s\/oc\s-->)/gm;
 
   /**

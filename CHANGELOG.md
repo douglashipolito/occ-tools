@@ -2,6 +2,14 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [2.0.0-beta.60] - 2021-11-03]
+
+### Added
+- Added support to restore elements through upgrade command
+- Improved the `restore` command to support locales, layouts, pages backup
+- Added `download backup` command
+- Restore command now runs `upgrade` command if the extension is not available in the environment
+
 ## [2.0.0-beta.59] - 2021-10-08]
 
 ### Added
