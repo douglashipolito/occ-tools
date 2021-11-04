@@ -328,7 +328,7 @@ Upload.prototype.do_files = function(subcmd, opts, args, callback) {
   }
 
   opts.allowedFolders = allowedFolders;
-  files.uploadCommand(filePath, opts, callback);
+  files.uploadCommand(filePath, opts);
 };
 
 Upload.prototype.do_files.help = (

@@ -9,6 +9,19 @@ This project must adhere to [this](https://github.com/olivierlacan/keep-a-change
 - Improved the `restore` command to support locales, layouts, pages backup
 - Added `download backup` command
 - Restore command now runs `upgrade` command if the extension is not available in the environment
+- Added support for automatic deployment:
+  - Uploading and upgrading widgets
+  - Uploading and upgrading appLevels
+  - Generating theme
+  - Uploading SSEs
+  - Uploading files
+  - deployment of sseVariables from Vault
+  - Uploading Email templates (occ-tools upload email order_placed_V1 --site=siteCA will automatically change html_body_siteCA.ftl to html_body.ftl)
+  - Depricated:
+    - Stacks
+    - Gateway config
+    - allEmails
+    - responseFilter
 
 ## [2.0.0-beta.59] - 2021-10-08]
 
