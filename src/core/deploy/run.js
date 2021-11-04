@@ -228,7 +228,7 @@ function uploadStack(callback, errors, operation) {
 }
 
 function uploadSearch(callback, errors, operation) {
-  var search = new Search('admin');
+  var search = new Search('search');
   search.on('complete', function() {
     callback();
   });
