@@ -10,6 +10,7 @@ var _download = require('./download');
 var _upload = require('./upload');
 var _generate = require('./generate');
 var _info = require('./info');
+var _backup = require('./backup');
 
 var _settings = {
   env: 'adminUI',
@@ -69,6 +70,19 @@ Widget.prototype.generate = function(name, options) {
     err ? self.emit('error', err) : self.emit('complete', 'Widget generation process completed.');
   });
 };
+
+/**
+ * Generate the widget boilerplate.
+ * @param  {String} name    The widget name.
+ * @param  {Object} options The options object.
+ */
+ Widget.prototype.backup = function(name, options) {
+  var self = this;
+  _backup.call(this, name, self._occ, function(err) {
+    err ? self.emit('error', err) : self.emit('complete', 'Widget backup process completed.');
+  }, options);
+};
+
 
 Widget.prototype.info = function(id) {
   var self = this;
