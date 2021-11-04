@@ -215,7 +215,7 @@ function uploadEmail(callback, errors, operation) {
   });
 
   operation.options = operation.options || {};
-  operation.options.siteId = operation.options.site || 'siteUS';
+  operation.options.siteId = operation.options.siteId || 'siteUS';
   operation.options.languageId = operation.options.language || 'en';
   email.upload(operation.id, operation.options);
 }

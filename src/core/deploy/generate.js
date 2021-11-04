@@ -66,18 +66,38 @@ function processSSE(changes, filePath) {
   }
 }
 
+const processEmails = (changes, filePath) => {
+  const doesContainSite = (name) => name.includes('_siteCA') ? name : false;
+  let lastElement = filePath[filePath.length - 1];
+  switch (lastElement) {
+    case 'subject.ftl':
+    case 'Strings.xlf':
+      changes.email.siteUS.add(filePath[0]);
+      changes.email.siteCA.add(filePath[0]);
+      break;
+    case 'html_body.ftl':
+      changes.email.siteUS.add(filePath[0]);
+      break;
+    case doesContainSite(lastElement):
+      changes.email.siteCA.add(filePath[0]);
+      break;
+    default: 
+      skipFile(`${occConfigs.dir.storefront_dir_name}'/emails`, filePath);
+      break;
+  }
+};
+
 function processStorefront(changes, filePath) {
   switch (filePath[0]) {
     case 'app-level':
       changes.appLevel.upload.add(filePath[1]);
       break;
     case 'emails':
-      if (filePath[1] === 'samples' || filePath[1] === '.gitkeep') {
+      var dissalowedFolders = ['samples', '.gitkeep', 'samples', 'templateManager'];
+      if (dissalowedFolders.includes(filePath[1])) {
         skipFile(occConfigs.dir.storefront_dir_name, filePath);
-      } else if (filePath[1] === 'templates' || filePath[1] === 'function') {
-        changes.allEmails = true;
       } else {
-        changes.email.add(filePath[1]);
+        processEmails(changes, filePath.slice(1));
       }
       break;
     case 'less':
@@ -151,7 +171,10 @@ module.exports = function(revision, options, callback) {
       upload: new Set(),
       upgrade: new Set()
     },
-    email: new Set(),
+    email: {
+      siteUS: new Set(),
+      siteCA: new Set()
+    },
     sse: new Set(),
     stack: new Set(),
     search: new Set(),
@@ -163,7 +186,6 @@ module.exports = function(revision, options, callback) {
     gateway: new Set(),
     files: new Set(),
     theme: false,
-    allEmails: false,
     responseFilter: false,
     sseVariable: true,
     index: false
@@ -247,63 +269,6 @@ module.exports = function(revision, options, callback) {
     }
   };
 
-  var checkChangedEmailTemplates = function(callback) {
-    if (_changes.allEmails) {
-      winston.info(
-        'A global email template was changed, all emails will be uploaded...'
-      );
-
-      async.waterfall([
-        function(callback) {
-          self._occ.request('/email/notificationTypes', function(error, response) {
-            if (error) {
-              callback('Error while listing the email');
-            }
-
-            if (response.errorCode || response.error || parseInt(response.status) >= 400) {
-              callback(response.message);
-            }
-
-            var emails = Object.keys(response)
-              .filter(function(key) { return key !== 'links'; });
-
-            callback(null, emails);
-          });
-        },
-        function (remoteEmails, callback) {
-          fs.readdir(
-            path.join(config.dir.project_root, 'emails'),
-            'utf8',
-            function(error, emails) {
-              if (error) {
-                callback(error);
-              } else {
-                callback(null, remoteEmails, emails);
-              }
-            }
-          );
-        },
-        function(remoteEmails, localEmails, callback) {
-          // add all items
-          localEmails.forEach(function(email) {
-            _changes.email.add(email);
-          });
-
-          // remove folders and files that are not emails
-          _changes.email.forEach(function(email) {
-            if (!remoteEmails.includes(email)) {
-              _changes.email.delete(email);
-            }
-          });
-
-          callback();
-        }
-      ], callback);
-    } else {
-      callback();
-    }
-  };
-
   var checkNotInstalledAppLevels = function(callback) {
     if (_changes.appLevel.upload.size) {
       winston.info('Verifying not installed AppLevel JS...');
@@ -376,16 +341,30 @@ module.exports = function(revision, options, callback) {
           break;
         case 'email':
         case 'sse':
-          _changes[changeType].forEach(function(item) {
-            _deployJson.push({
-              operation: 'upload',
-              type: changeType,
-              id: item,
-              options: {
-                npm: true
-              }
-            });
+          Object.keys(_changes[changeType]).forEach(site => {
+            if(_changes[changeType][site].size) {
+              _changes[changeType][site].forEach(email => {
+                _deployJson.push({
+                  operation: 'upload',
+                  type: changeType,
+                  id: email,
+                  options: {
+                    siteId: site
+                  }
+                });
+              });
+            }
           });
+          // _changes[changeType].forEach(function(item) {
+          //   _deployJson.push({
+          //     operation: 'upload',
+          //     type: changeType,
+          //     id: item,
+          //     options: {
+          //       npm: true
+          //     }
+          //   });
+          // });
           break;
         case 'stack':
         case 'search':
@@ -485,7 +464,6 @@ module.exports = function(revision, options, callback) {
       processChanges,
       checkNotInstalledWidgets,
       checkNotInstalledAppLevels,
-      checkChangedEmailTemplates,
       buildDeployJson,
       storeDeployJson
     ],
