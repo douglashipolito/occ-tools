@@ -6,7 +6,6 @@ var fs = require('fs');
 var async = require('async');
 var Cmdln = require('cmdln').Cmdln;
 var _Configs = require('../core/configs');
-const { environment } = require('../core/config');
 
 function setPromptSchema(schema) {
   Object.keys(schema.properties).forEach(function (propertyKey) {
