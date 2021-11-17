@@ -15,7 +15,9 @@ var Search = require('../search');
 var Stack = require('../stack');
 var Email = require('../email');
 
-module.exports = function(deployInstructions, callback) {
+const { getSiteSetting } = require('../site-settings/get');
+
+module.exports = function(deployInstructions, releaseVersion, callback) {
   var self = this;
 
   var errors = [];
@@ -31,6 +33,10 @@ module.exports = function(deployInstructions, callback) {
     1,
     function(operation, callback) {
       operation.options = operation.options || {};
+      if(operation.isExternalCommand && !(global.remote && global.remote.OccTools && global.remote.OccTools.prototype[`do_${operation.type}`])) {
+        operationNotSupported(errors, operation);
+        callback();
+      }
       switch (operation.type) {
         case 'publish':
           if (operation.operation === 'trigger') {
@@ -89,22 +95,30 @@ module.exports = function(deployInstructions, callback) {
             callback();
           }
           break;
-        case 'search':
-          if (operation.operation === 'upload') {
-            uploadSearch(callback, errors, operation);
+        // case 'search': @TODO handle the rest of search folder
+        //   if (operation.operation === 'upload') {
+        //     uploadSearch(callback, errors, operation);
+        //   } else {
+        //     operationNotSupported(errors, operation);
+        //     callback();
+        //   }
+        //   break;
+        case 'facets':
+          if (operation.operation === 'deploy') {
+            deployFacets(callback, errors, operation);
           } else {
             operationNotSupported(errors, operation);
             callback();
           }
           break;
-        case 'stack':
-          if (operation.operation === 'upload') {
-            uploadStack(callback, errors, operation);
-          } else {
-            operationNotSupported(errors, operation);
-            callback();
-          }
-          break;
+        // case 'stack': @TODO handle stacks
+        //   if (operation.operation === 'upload') {
+        //     uploadStack(callback, errors, operation);
+        //   } else {
+        //     operationNotSupported(errors, operation);
+        //     callback();
+        //   }
+        //   break;
         case 'appLevel':
         case 'app-level':
           if (operation.operation === 'upload') {
@@ -114,8 +128,13 @@ module.exports = function(deployInstructions, callback) {
             callback();
           }
           break;
-        case 'sse-variables':
+        case 'sseVariable':
           switch (operation.operation) {
+            case 'deploy':
+              downloadSseVariables(() => {
+                uploadSseVariables(callback, errors, operation);
+              }, errors, operation);
+              break;
             case 'upload':
               uploadSseVariables(callback, errors, operation);
               break;
@@ -172,13 +191,18 @@ module.exports = function(deployInstructions, callback) {
       if (err) {
         callback(err);
       } else {
-        if (errors && errors.length) {
-          winston.error('The following errors were found during the deploy');
-          console.table(errors);
-        } else {
-          winston.info('No errors were found during the deploy');
-        }
-        callback();
+        updateReleaseVersion(releaseVersion, self._occ, function(err) {
+          if(err) {
+            errors.push({ type: 'update', id: 'releaseVersion', error: err });
+          }
+          if (errors && errors.length) {
+            winston.error('The following errors were found during the deploy');
+            console.table(errors);
+          } else {
+            winston.info('No errors were found during the deploy');
+          }
+          callback();
+        });
       }
     }
   );
@@ -210,33 +234,63 @@ function uploadEmail(callback, errors, operation) {
   });
 
   operation.options = operation.options || {};
-  operation.options.siteId = operation.options.site || 'siteUS';
+  operation.options.siteId = operation.options.siteId || 'siteUS';
   operation.options.languageId = operation.options.language || 'en';
   email.upload(operation.id, operation.options);
 }
 
-function uploadStack(callback, errors, operation) {
-  var stack = new Stack('admin');
-  stack.on('complete', function() {
+// function uploadStack(callback, errors, operation) { @TODO handle stacks
+//   var stack = new Stack('admin');
+//   stack.on('complete', function() {
+//     callback();
+//   });
+//   stack.on('error', function(err) {
+//     errors.push({ type: operation.type, id: operation.id, error: err });
+//     callback();
+//   });
+//   stack.upload(operation.id, {});
+// }
+
+// function uploadSearch(callback, errors, operation) { @TODO handle the rest of search files
+//   var search = new Search('admin');
+//   search.on('complete', function() {
+//     callback();
+//   });
+//   search.on('error', function(err) {
+//     errors.push({ type: operation.type, id: operation.id, error: err });
+//     callback();
+//   });
+//   search.upload(operation.id);
+// }
+
+function deleteFacets(callback, errors, operation) {
+  var facets = new global.remote.OccTools.prototype.do_facets();
+  var cb = (err) => {
+    if(err) {
+      errors.push({ type: operation.type, id: operation.id, error: err });
+      callback(err);
+    }
     callback();
-  });
-  stack.on('error', function(err) {
-    errors.push({ type: operation.type, id: operation.id, error: err });
-    callback();
-  });
-  stack.upload(operation.id, {});
+  };
+  facets.do_delete(null, operation.options || {}, null, cb)
 }
 
-function uploadSearch(callback, errors, operation) {
-  var search = new Search('admin');
-  search.on('complete', function() {
+function updateFacets(callback, errors, operation) {
+  var facets = new global.remote.OccTools.prototype.do_facets();
+  var cb = (err) => {
+    if(err) {
+      errors.push({ type: operation.type, id: operation.id, error: err });
+    }
     callback();
-  });
-  search.on('error', function(err) {
-    errors.push({ type: operation.type, id: operation.id, error: err });
-    callback();
-  });
-  search.upload(operation.id);
+  };
+  facets.do_create(null, operation.options || {}, null, cb);
+}
+
+function deployFacets(callback, errors, operation) {
+  deleteFacets((err) => {
+    if(err) callback();
+    updateFacets(callback, errors, operation);
+  }, errors, operation);
 }
 
 function uploadFiles(callback, errors, operation) {
@@ -285,6 +339,18 @@ function restartSse(callback, errors, operation) {
     callback();
   });
   sse.restart(operation.options);
+}
+
+function downloadSseVariables(callback, errors, operation) {
+  var sse = new ServerSideExtension('admin');
+  sse.on('complete', function() {
+    callback();
+  });
+  sse.on('error', function(err) {
+    errors.push({ type: operation.type, id: operation.id, error: err });
+    callback();
+  });
+  sse.downloadVariablesFromVault(operation.id, operation.options);
 }
 
 function uploadSseVariables(callback, errors, operation) {
@@ -380,7 +446,7 @@ function uploadAppLevel(callback, errors, operation) {
     errors.push({ type: operation.type, id: operation.id, error: err });
     callback();
   });
-  appLevel.upload(operation.id, operation.options);
+  appLevel.upload([operation.id], operation.options);
 }
 
 function upgradeExtensions(callback, errors, operation) {
@@ -449,3 +515,35 @@ function operationNotSupported(errors, operation) {
     )
   });
 }
+
+const updateReleaseVersion = async (releaseVersion, occ, callback) => {
+  try {
+    const response = await getSiteSetting('customSiteSettings', 'siteUS', occ);
+    if (response && response.data && response.data.currentReleaseVersion) {
+      let data = {
+        ...response.data,
+        currentReleaseVersion: releaseVersion
+      };
+      var options = {
+        api: '/sitesettings/customSiteSettings',
+        method: 'put',
+        body: data,
+        headers: {
+          'x-ccsite': 'siteUS'
+        }
+      };
+      occ.request(options, function (error, response) {
+        if (error || response.errorCode) {
+          winston.error('Could not update release version');
+          callback(error || response.message);
+        }
+        callback();
+      });
+    } else {
+      winston.info('This extension is not installed on site.');
+      callback('This extension is not installed on site.');
+    }
+  } catch (error) {
+    callback(error.message || error);
+  }
+};

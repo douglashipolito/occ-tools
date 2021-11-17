@@ -2,6 +2,30 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [2.0.0-beta.60] - 2021-11-03]
+
+### Added
+- Added support to restore elements through upgrade command
+- Improved the `restore` command to support locales, layouts, pages backup
+- Added `download backup` command
+- Restore command now runs `upgrade` command if the extension is not available in the environment
+- Changing environment by passing env as parameter `occ-tools configs set-env -e c4tst`
+- Add releseVersion to deploy command `occ-tools deploy run "./deploy-scripts/test-deploy.json" -v 21.15.2-30`. `21.15.2-30` will be set in siteSettings
+- Removed parameter `head` from generate deploy command. It will grab version from siteSettings
+- Added support for automatic deployment:
+  - Uploading and upgrading widgets
+  - Uploading and upgrading appLevels
+  - Generating theme
+  - Uploading SSEs
+  - Uploading files
+  - deployment of sseVariables from Vault
+  - Uploading Email templates (occ-tools upload email order_placed_V1 --site=siteCA will automatically change html_body_siteCA.ftl to html_body.ftl)
+  - Depricated:
+    - Stacks
+    - Gateway config
+    - allEmails
+    - responseFilter
+
 ## [2.0.0-beta.59] - 2021-10-08]
 
 ### Added

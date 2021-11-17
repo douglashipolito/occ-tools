@@ -27,7 +27,7 @@ var getWidgetConfig = function (widgetType, backup, occ, callback) {
 };
 
 /**
- * Creates the new widget instances with the same name
+ * Get existing instances from widget
  *
  * @param {String} widgetType The widget type
  * @param {Object} backup The backup information
@@ -35,12 +35,54 @@ var getWidgetConfig = function (widgetType, backup, occ, callback) {
  * @param {Object} config The widget.json
  * @param {Function} callback The callback function
  */
-var createInstances = function (widgetType, backup, occ, config, callback) {
+var getWidgetInstances = function (widgetType, backup, occ, config, callback) {
+  return occ.request({
+    api: '/widgetDescriptors/instances',
+    method: 'get',
+    qs: {
+      source: '101'
+    }
+  }, function (err, response) {
+    var existingInstances = [];
+
+    var widgetDescriptor = response.items.find(function (item) {
+      return item.widgetType === widgetType;
+    });
+
+    if (widgetDescriptor && Array.isArray(widgetDescriptor.instances)) {
+      existingInstances = widgetDescriptor.instances;
+    }
+
+    callback(null, config, existingInstances);
+  });
+}
+
+/**
+ * Creates the new widget instances with the same name
+ *
+ * @param {String} widgetType The widget type
+ * @param {Object} backup The backup information
+ * @param {Object} occ The OCC requester
+ * @param {Object} config The widget.json
+ * @param {Object} existingInstances List of instances already in occ
+ * @param {Function} callback The callback function
+ */
+var createInstances = function (widgetType, backup, occ, config, existingInstances, callback) {
   if (!config.global && backup.widget && backup.widget.instances && backup.widget.instances.length) {
-    winston.info('Creating new widget instances');
+    winston.info('Setting up instances for %s', widgetType);
+
     var newInstances = {};
     async.forEach(backup.widget.instances, function (instance, cb) {
-      // creates the new instances
+      var foundInstance = existingInstances.find(function (existingInstance) {
+        return existingInstance.displayName === instance.displayName;
+      });
+
+      if (foundInstance) {
+        winston.info('Found instance for "%s" in layout', instance.displayName);
+        newInstances[instance.id] = foundInstance.repositoryId;
+        return cb();
+      }
+
       var request = {
         'api': '/widgets',
         'method': 'post',
@@ -52,6 +94,7 @@ var createInstances = function (widgetType, backup, occ, config, callback) {
           'x-ccasset-language': 'en'
         }
       };
+
       occ.request(request, function (error, response) {
         if (error || (response && response.errorCode)) {
           return cb(error || response.message);
@@ -222,6 +265,50 @@ var restoreSiteAssociations = function (widgetType, backup, occ, instances, glob
 };
 
 /**
+ * Restore widget locales
+ *
+ * @param {String} widgetType The widget type
+ * @param {Object} backup The backup information
+ * @param {Object} occ The OCC requester
+ * @param {Array} instances The new widget instances
+ * @param {Function} callback The callback function
+ */
+var restoreLocales = function (widgetType, backup, occ, instances, callback) {
+  async.forEach(backup.widgetIds, function (widgetId, cbRestore) {
+    var instanceId = instances[widgetId];
+    var widgetLocales = backup.locales[widgetId];
+
+    async.forEachOf(widgetLocales, function (localeResource, localeName, cbLocale) {
+      if (!localeResource) {
+        return cbLocale();
+      }
+
+      winston.info('Restoring "%s" locale information for widget %s', localeName, instanceId);
+
+      occ.request({
+        api: util.format('widgets/%s/locale/en', instanceId),
+        method: 'put',
+        headers: {
+          'X-CCAsset-Language': 'en'
+        },
+        body: localeResource
+      }, function (err) {
+        if (err) {
+          winston.warn('Unable to restore "%s" locale information for widget %s', localeName, instanceId);
+          window.warn(JSON.stringify(localeResource, null, 2));
+        } else {
+          winston.info('Success restoring "%s" locale information for widget %s', localeName, instanceId);
+        }
+
+        cbLocale();
+      });
+    }, cbRestore);
+  }, function() {
+    callback(null, instances);
+  });
+}
+
+/**
  * Gets the new widget configuration schema.
  *
  * @param {String} widgetType The widget type
@@ -273,6 +360,7 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
     winston.info('Restoring widgets previous configurations');
     async.forEach(backup.widgetIds, function (instanceId, cb) {
       var settings = backup.settings[instanceId];
+
       if (settings && Object.keys(settings).length) {
         // get the instance information
         var instance = backup.widget.instances.find(function (instance) {
@@ -287,7 +375,7 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
         });
 
         // update the instance configuration
-        var request = {
+        occ.request({
           'api': util.format('/widgets/%s', instances[instanceId]),
           'method': 'put',
           'body': {
@@ -300,8 +388,7 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
           'headers': {
             'x-ccasset-language': 'en'
           }
-        };
-        occ.request(request, function (error, response) {
+        }, function (error, response) {
           response = response || {};
 
           if (error){
@@ -322,12 +409,259 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
       }
     }, function (error) {
       if (error) callback(error);
+      callback(null, instances);
+    });
+  } else {
+    callback(null, instances);
+  }
+};
+
+var restoreElementizedWidgetsLayout = function (widgetType, backup, occ, instances, elementLayoutSource, callback) {
+  // No layout source available
+  if(typeof elementLayoutSource === 'function') {
+    callback = elementLayoutSource;
+  }
+
+  var layoutSectionRegex = /<!--\soc\slayout:\s.+?-->([^]+<!--\s\/oc\s-->)/gm;
+
+  /**
+   * Sanitize widget layout source for payload
+   * TODO: move to utils
+   *
+   * @param {String} layoutSource
+   * @return {String} clean layoutSource
+   */
+  var sanitizeLayoutSource = function (layoutSource) {
+    return layoutSource.replace(/<!-- ko setContextVariable: [\s\S]*? \/ko -->/gm, "");
+  }
+
+  /**
+   * Sanitize element fragment for payload
+   * TODO: move to utils
+   *
+   * @param {String} layoutSource
+   * @return {String} clean layoutSource
+   */
+  var sanitizeElementFragment = function (fragment) {
+    var elementInstance = Object.assign({}, fragment);
+
+    // Delete unnecessary attributes for payload
+    delete elementInstance.repositoryId;
+    delete elementInstance.source;
+    delete elementInstance.inline;
+    delete elementInstance.children;
+    delete elementInstance.title;
+    delete elementInstance.previewText;
+    delete elementInstance.previewText;
+    // delete elementInstance.configOptions;
+
+    // Move configs to top level data since this is expected to reconfigure elements configuration
+    var elementConfig = elementInstance.config;
+    delete elementInstance.config;
+
+    Object.keys(elementConfig).map(function (configName) {
+      elementInstance[configName] = elementConfig[configName].values;
+    });
+
+    // Cleanup unnecessary imageConfig attributes
+    if (elementInstance.imageConfig) {
+      delete elementInstance.imageConfig.titleTextId
+      delete elementInstance.imageConfig.altTextId
+    }
+
+    // Cleanup unnecessary richTextConfig attributes
+    if (elementInstance.richTextConfig) {
+      delete elementInstance.richTextConfig.sourceMedia
+    }
+
+    return elementInstance;
+  }
+
+  /**
+   * Get element fragment tag id
+   * TODO: move to utils
+   *
+   * @param {Object} fragment
+   * @returns {String}
+   */
+  var getFragmentId = function (fragmentTag) {
+    return fragmentTag.split("@")[1];
+  }
+
+  /**
+   * Get element fragment tag name
+   * TODO: move to utils
+   *
+   * @param {Object} fragment
+   * @returns {String}
+   */
+  var getFragmentName = function (fragmentTag) {
+    return fragmentTag.split("@")[0];
+  }
+
+  /**
+   * Ensure new element instances are created
+   * TODO: move to utils
+   *
+   * @param {String} layoutSource
+   * @param {Array<Object>} fragments array of element fragments
+   * @param {Function} cbFragments
+   */
+  var prepareElementFragments = function (occ, instanceId, layout, layoutSource, cbFragments) {
+    var newFragments = [];
+
+    // Create new fragment for each fragment and replace repositoryId and tag as per DCU
+    // If id is not found in templateSource exclude it from fragments
+    async.forEach(layout.fragments, function (fragment, cbFragment) {
+      var elementTagId = getFragmentId(fragment.tag);
+      var elementTagName = getFragmentName(fragment.tag);
+
+      // If fragment is not in template, then it's disabled and we don't need to include it
+      if (!elementTagId || !layoutSource.includes(elementTagId)) {
+        winston.warn('Disabling element instance "%s" since it is not in widget layout', fragment.text || fragment.tag);
+        return cbFragment();
+      }
+
+      // Generating new element instance for existing fragment
+      var newFragment = sanitizeElementFragment(fragment);
+
+      occ.request({
+        api: util.format('widgets/%s/element/%s', instanceId, elementTagName),
+        method: 'post',
+        headers: {
+          'x-ccasset-language': 'en'
+        }
+      }, function (err, response) {
+        var error = err || (response && response.errorCode ? response.message : false);
+
+        if (error) {
+          winston.error('Error restoring element instance "%s" for widget "%s" (%s)', fragment.tag, layout.displayName, instanceId);
+          winston.error(JSON.stringify(error, null, 2));
+        } else {
+          newFragment.oldTag = fragment.tag;
+          newFragment.tag = response.tag;
+          newFragment.repositoryId = response.repositoryId;
+
+          winston.info('New element instance generated with id %s', fragment.repositoryId);
+          newFragments.push(newFragment);
+        }
+
+        cbFragment();
+      });
+    }, function(err) {
+      cbFragments(null, newFragments);
+    });
+  };
+
+  /**
+   * Replace old element tags by new tags in template
+   * TODO: Move to utils
+   *
+   * @param {String} layoutSource
+   * @param {Array<Fragment>} fragments
+   * @param {Function} cbFragments
+   */
+  var replaceElementFragments = function (layoutSource, fragments) {
+    return fragments.reduce(function (result, fragment) {
+      var oldSnippet = util.format('id: \'%s\'', getFragmentId(fragment.oldTag));
+      var newSnippet = util.format('id: \'%s\'', fragment.repositoryId);
+
+      return result.replace(oldSnippet, newSnippet);
+    }, layoutSource);
+  };
+
+  // Reminder: keep this here, don't move to utils
+  if (backup.layouts && Object.keys(backup.layouts).length) {
+    winston.info('Restoring elementized widgets for "%s" widget', widgetType);
+
+    // Restore each elementized widget instance
+    async.forEachOf(backup.layouts, function (layout, widgetId, cbMetadata) {
+      // Get ref id from widget id
+      var instanceId = instances[widgetId];
+
+      if (!layout.fragments) {
+        winston.info('Widget instance "%s" (%s) has no elements in layout. Skipping...', layout.displayName, instanceId);
+        return cbMetadata();
+      }
+
+      // Remove setVariables binding
+      var sanitizedLayoutSource = sanitizeLayoutSource(layout.layoutSource);
+
+      // Generate new fragments if needed
+      prepareElementFragments(occ, instanceId, layout, sanitizedLayoutSource, function (err, newFragments) {
+        var payload = {};
+
+        // Add widget config to payload
+        payload.widgetConfig = {};
+        payload.widgetConfig.name = layout.displayName;
+        payload.widgetConfig.notes = '';
+
+        // Add fragments to payload
+        payload.layoutConfig = [];
+        payload.layoutConfig.push({ fragments: newFragments });
+
+        // Add layout source to payload
+        var layoutSourceWithReplacedFragments = replaceElementFragments(sanitizedLayoutSource, newFragments);
+
+        // Find all the OC SECTIONS inside the template
+        // This is added by OCC or manually in the template
+        var ocSections = layoutSourceWithReplacedFragments.match(layoutSectionRegex);
+
+        // If OC Sections are found, put back the found oc sections inside the LAYOUT SOURCE
+        // This Layout Source is placed inside the widgetFolder/layouts/[layoutid]/widget.template
+        if(ocSections) {
+          layoutSourceWithReplacedFragments = elementLayoutSource.replace(layoutSectionRegex, ocSections[0]);
+        }
+
+        payload.layoutSource = layoutSourceWithReplacedFragments;
+        payload.layoutDescriptorId = layout.layoutDescriptorId;
+
+        winston.info('Restoring elementized widget layout for instance "%s" (%s)', layout.displayName, instanceId);
+
+        // Update widget instance with inner layout data
+        occ.request({
+          api: util.format('/widgets/%s', instanceId),
+          method: 'put',
+          headers: {
+            'x-ccasset-Language': 'en'
+          },
+          body: payload
+        }, function (err, response) {
+          var error = err || (response && response.errorCode ? response.message : false);
+
+          if (error) {
+            winston.error('Error restoring elementized widget layout for instance "%s" (%s)', layout.displayName, instanceId);
+            winston.error(JSON.stringify(error, null, 2));
+          } else {
+            winston.info('Widget instance "%s" (%s) layout successfully restored. Restored %s element instances', layout.displayName, instanceId, newFragments.length);
+          }
+
+          cbMetadata();
+        });
+      });
+    }, function (err) {
       callback();
     });
   } else {
     callback();
   }
-};
+}
+
+function getWidgetLayoutTemplate(widgetType, backup, _occ, instances, callback) {
+  if(backup.layouts && Object.keys(backup.layouts).length) {
+    var templateFilePath = path.join(_config.dir.project_root, 'widgets', 'objectedge', widgetType, 'layouts', backup.widget.defaultLayout.name, 'widget.template');
+
+    fs.readFile(templateFilePath, { encoding: 'utf8' }, function(error, elementLayoutSource) {
+      if(error) {
+        return callback(error);
+      }
+
+      callback(null, instances, elementLayoutSource);
+    });
+  } else {
+    callback(null, instances);
+  }
+}
 
 /**
  * Restores a widget backup
@@ -340,11 +674,15 @@ var restoreConfiguration = function (widgetType, backup, occ, instances, configu
 module.exports = function (widgetType, backup, occ, callback) {
   async.waterfall([
     async.apply(getWidgetConfig, widgetType, backup, occ),
+    async.apply(getWidgetInstances, widgetType, backup, occ),
     async.apply(createInstances, widgetType, backup, occ),
     async.apply(placeInstances, widgetType, backup, occ),
     async.apply(getGlobalInstance, widgetType, backup, occ),
     async.apply(restoreSiteAssociations, widgetType, backup, occ),
+    async.apply(restoreLocales, widgetType, backup, occ),
     async.apply(getWidgetConfigurations, widgetType, backup, occ),
-    async.apply(restoreConfiguration, widgetType, backup, occ)
+    async.apply(restoreConfiguration, widgetType, backup, occ),
+    async.apply(getWidgetLayoutTemplate, widgetType, backup, occ),
+    async.apply(restoreElementizedWidgetsLayout, widgetType, backup, occ)
   ], callback);
 };

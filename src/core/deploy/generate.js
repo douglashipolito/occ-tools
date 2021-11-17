@@ -9,6 +9,8 @@ var github = require('../github');
 var config = require('../config');
 var Widget = require('../widget');
 
+const { getSiteSetting } = require('../site-settings/get');
+
 function skipFile(folder, file) {
   winston.info(
     'Skipping path %s',
@@ -18,29 +20,33 @@ function skipFile(folder, file) {
 
 function processCustomWidget(changes, filePath) {
   if (filePath.length > 1) {
-    switch (filePath[1]) {
-      case 'widget.json':
-      case 'config':
-      case 'element':
-      case 'layouts':
-      case 'images':
-        changes.widget.upgrade.add(filePath[0]);
-        break;
-      case 'js':
-      case 'js-src':
-      case 'less':
-      case 'locales':
-        changes.widget.upload.add(filePath[0]);
-        break;
-      case 'templates':
-        if (filePath[2] === 'display.template') {
-          changes.widget.upload.add(filePath[0]);
-        } else {
+    if(filePath[0] === 'oeCheckoutAddressBook') {
+      changes.widget.upgrade.add(filePath[0]);
+    } else {
+      switch (filePath[1]) {
+        case 'widget.json':
+        case 'config':
+        case 'element':
+        case 'layouts':
+        case 'images':
           changes.widget.upgrade.add(filePath[0]);
-        }
-        break;
-      default:
-        skipFile(occConfigs.dir.storefront_dir_name+'/widgets/objectedge', filePath);
+          break;
+        case 'js':
+        case 'js-src':
+        case 'less':
+        case 'locales':
+          changes.widget.upload.add(filePath[0]);
+          break;
+        case 'templates':
+          if (filePath[2] === 'display.template') {
+            changes.widget.upload.add(filePath[0]);
+          } else {
+            changes.widget.upgrade.add(filePath[0]);
+          }
+          break;
+        default:
+          skipFile(occConfigs.dir.storefront_dir_name+'/widgets/objectedge', filePath);
+      }
     }
   } else {
     skipFile(occConfigs.dir.storefront_dir_name+'/widgets/objectedge', filePath);
@@ -62,18 +68,38 @@ function processSSE(changes, filePath) {
   }
 }
 
+const processEmails = (changes, filePath) => {
+  const doesContainSite = (name) => name.includes('_siteCA') ? name : false;
+  let lastElement = filePath[filePath.length - 1];
+  switch (lastElement) {
+    case 'subject.ftl':
+    case 'Strings.xlf':
+      changes.email.siteUS.add(filePath[0]);
+      changes.email.siteCA.add(filePath[0]);
+      break;
+    case 'html_body.ftl':
+      changes.email.siteUS.add(filePath[0]);
+      break;
+    case doesContainSite(lastElement):
+      changes.email.siteCA.add(filePath[0]);
+      break;
+    default: 
+      skipFile(`${occConfigs.dir.storefront_dir_name}'/emails`, filePath);
+      break;
+  }
+};
+
 function processStorefront(changes, filePath) {
   switch (filePath[0]) {
     case 'app-level':
       changes.appLevel.upload.add(filePath[1]);
       break;
     case 'emails':
-      if (filePath[1] === 'samples' || filePath[1] === '.gitkeep') {
+      var dissalowedFolders = ['samples', '.gitkeep', 'samples', 'templateManager'];
+      if (dissalowedFolders.includes(filePath[1])) {
         skipFile(occConfigs.dir.storefront_dir_name, filePath);
-      } else if (filePath[1] === 'templates' || filePath[1] === 'function') {
-        changes.allEmails = true;
       } else {
-        changes.email.add(filePath[1]);
+        processEmails(changes, filePath.slice(1));
       }
       break;
     case 'less':
@@ -86,13 +112,13 @@ function processStorefront(changes, filePath) {
         skipFile(occConfigs.dir.storefront_dir_name, filePath);
       }
       break;
-    case 'stacks':
-      if (filePath.length > 2) {
-        changes.stack.add(filePath[1]);
-      } else {
-        skipFile(occConfigs.dir.storefront_dir_name, filePath);
-      }
-      break;
+    // case 'stacks': @TODO handle stacks
+    //   if (filePath.length > 2) {
+    //     changes.stack.add(filePath[1]);
+    //   } else {
+    //     skipFile(occConfigs.dir.storefront_dir_name, filePath);
+    //   }
+    //   break;
     case 'widgets':
       if (filePath[1] === 'objectedge' && filePath.length > 3) {
         processCustomWidget(changes, filePath.slice(2));
@@ -102,9 +128,6 @@ function processStorefront(changes, filePath) {
         skipFile(occConfigs.dir.storefront_dir_name, filePath);
       }
       break;
-    case 'responseFilters.json':
-      changes.responseFilter = true;
-      break;
     case 'images':
       changes.files.general.add(
         path.join('images', filePath[1])
@@ -113,9 +136,7 @@ function processStorefront(changes, filePath) {
     case 'files':
       var allowedFolders = ['general', 'thirdparty', 'products', 'collections'];
       if (allowedFolders.includes(filePath[1])) {
-        changes.files[filePath[1]].add(
-          path.join.apply(null, filePath)
-        );
+        changes.files.add(path.join.apply(null, filePath));
       }
       break;
     default:
@@ -124,8 +145,21 @@ function processStorefront(changes, filePath) {
   }
 }
 
+const TYPES = {
+  ITEM: 'item',
+  PRODUCT: 'product',
+  ORDER: 'order',
+  SHOPPER: 'shopper'
+}
+function processTypes(changes, filePath) {
+  if (filePath[1] === TYPES.PRODUCT) {
+    changes.index = true;
+  }
+}
+
 module.exports = function(revision, options, callback) {
   var self = this;
+  var _currentVersion;
   var _changedFiles;
   var _deployJson = [];
   var _ignoreSearchFolders = [
@@ -137,7 +171,10 @@ module.exports = function(revision, options, callback) {
       upload: new Set(),
       upgrade: new Set()
     },
-    email: new Set(),
+    email: {
+      siteUS: new Set(),
+      siteCA: new Set()
+    },
     sse: new Set(),
     stack: new Set(),
     search: new Set(),
@@ -147,21 +184,31 @@ module.exports = function(revision, options, callback) {
     },
     config: new Set(),
     gateway: new Set(),
-    files: {
-      general: new Set(),
-      thirdparty: new Set(),
-      collections: new Set(),
-      products: new Set()
-    },
+    files: new Set(),
     theme: false,
-    allEmails: false,
-    responseFilter: false,
-    sseVariable: false
+    sseVariable: true,
+    facets: false,
+    index: false
+  };
+
+  const getCurrentVersion = async function(callback) {
+    try {
+      const response = await getSiteSetting('customSiteSettings', 'siteUS', self._occ);
+      if (response && response.data && response.data.currentReleaseVersion) {
+        _currentVersion = response.data.currentReleaseVersion;
+        callback();
+      } else {
+        winston.info('This extension is not installed on site.');
+        callback('This extension is not installed on site.');
+      }
+    } catch (error) {
+      callback(error.message || error);
+    }
   };
 
   var listChangedFiles = function(callback) {
     winston.info('Listing changed files');
-    github.listChangedFiles(revision, options.head, function(error, fileList) {
+    github.listChangedFiles(revision, _currentVersion, function(error, fileList) {
       if (error) {
         callback(error);
       } else {
@@ -173,7 +220,7 @@ module.exports = function(revision, options, callback) {
 
   var processChanges = function(callback) {
     _changedFiles.forEach(function(file) {
-      if (!file) {
+      if (!file || !/^(?!.*(\.test\.|\.spec\.)).*/.test(file)) {
         return;
       }
       var filePath = file.split('/');
@@ -181,15 +228,26 @@ module.exports = function(revision, options, callback) {
         case occConfigs.dir.storefront_dir_name:
           processStorefront(_changes, filePath.slice(1));
           break;
-        case 'search':
-          if (filePath.length >  3 && !filePath.includes('ATG') && !_ignoreSearchFolders.includes(filePath[2])) {
-            _changes.search.add(filePath.slice(1, filePath.length - 1).join('/'));
+        // case 'search':
+        //   if (filePath.length >  3 && !filePath.includes('ATG') && !_ignoreSearchFolders.includes(filePath[2])) {
+        //     _changes.search.add(filePath.slice(1, filePath.length - 1).join('/'));
+        //   } else {
+        //     skipFile(null, filePath);
+        //   }
+        //   break;
+        case 'search': 
+          if (filePath[filePath.length - 1] === 'facets.json') {
+            _changes.facets = true;
+            _changes.index = true;
           } else {
             skipFile(null, filePath);
           }
           break;
         case 'server-side-extensions':
           processSSE(_changes, filePath.slice(1));
+          break;
+        case 'types':
+          processTypes(_changes, filePath);
           break;
         default:
           skipFile(null, filePath);
@@ -229,63 +287,6 @@ module.exports = function(revision, options, callback) {
         return callback(error);
       });
       widget.info();
-    } else {
-      callback();
-    }
-  };
-
-  var checkChangedEmailTemplates = function(callback) {
-    if (_changes.allEmails) {
-      winston.info(
-        'A global email template was changed, all emails will be uploaded...'
-      );
-
-      async.waterfall([
-        function(callback) {
-          self._occ.request('/email/notificationTypes', function(error, response) {
-            if (error) {
-              callback('Error while listing the email');
-            }
-
-            if (response.errorCode || response.error || parseInt(response.status) >= 400) {
-              callback(response.message);
-            }
-
-            var emails = Object.keys(response)
-              .filter(function(key) { return key !== 'links'; });
-
-            callback(null, emails);
-          });
-        },
-        function (remoteEmails, callback) {
-          fs.readdir(
-            path.join(config.dir.project_root, 'emails'),
-            'utf8',
-            function(error, emails) {
-              if (error) {
-                callback(error);
-              } else {
-                callback(null, remoteEmails, emails);
-              }
-            }
-          );
-        },
-        function(remoteEmails, localEmails, callback) {
-          // add all items
-          localEmails.forEach(function(email) {
-            _changes.email.add(email);
-          });
-
-          // remove folders and files that are not emails
-          _changes.email.forEach(function(email) {
-            if (!remoteEmails.includes(email)) {
-              _changes.email.delete(email);
-            }
-          });
-
-          callback();
-        }
-      ], callback);
     } else {
       callback();
     }
@@ -362,6 +363,21 @@ module.exports = function(revision, options, callback) {
           }
           break;
         case 'email':
+          Object.keys(_changes[changeType]).forEach(site => {
+            if(_changes[changeType][site].size) {
+              _changes[changeType][site].forEach(email => {
+                _deployJson.push({
+                  operation: 'upload',
+                  type: changeType,
+                  id: email,
+                  options: {
+                    siteId: site
+                  }
+                });
+              });
+            }
+          });
+          break;
         case 'sse':
           _changes[changeType].forEach(function(item) {
             _deployJson.push({
@@ -374,16 +390,16 @@ module.exports = function(revision, options, callback) {
             });
           });
           break;
-        case 'stack':
-        case 'search':
-          _changes[changeType].forEach(function(item) {
-            _deployJson.push({
-              operation: 'upload',
-              type: changeType,
-              id: item
-            });
-          });
-          break;
+        // case 'stack': @TODO handle stacks
+        // case 'search': @TODO handle search
+        //   _changes[changeType].forEach(function(item) {
+        //     _deployJson.push({
+        //       operation: 'upload',
+        //       type: changeType,
+        //       id: item
+        //     });
+        //   });
+        //   break;
         case 'appLevel':
           if (_changes.appLevel.upgrade.size) {
             _deployJson.push({
@@ -407,7 +423,7 @@ module.exports = function(revision, options, callback) {
           }
           break;
         case 'config':
-        case 'gateway':
+        // case 'gateway': @TODO handle gateways
           if (_changes[changeType].size) {
             _deployJson.push({
               operation: 'upgrade',
@@ -428,25 +444,39 @@ module.exports = function(revision, options, callback) {
           }
           break;
         case 'files':
-          Object.keys(_changes[changeType]).forEach(function(folder) {
-            _changes[changeType][folder].forEach(function(file) {
-              _deployJson.push({
-                operation: 'upload',
-                type: changeType,
-                id: file,
-                options: {
-                  folder: folder
-                }
-              });
+          _changes[changeType].forEach((file) => {
+            _deployJson.push({
+              operation: 'upload',
+              type: changeType,
+              id: file
             });
           });
           break;
-        case 'responseFilter':
         case 'sseVariable':
           if (_changes[changeType]) {
             _deployJson.push({
-              operation: 'upload',
+              operation: 'deploy',
               type: changeType
+            });
+          }
+          break;
+        case 'facets':
+          if (_changes[changeType]) {
+            _deployJson.push({
+              operation: 'deploy',
+              type: 'facets',
+              isExternalCommand: true
+            });
+          }
+          break;
+        case 'index':
+          if (_changes[changeType]) {
+            _deployJson.push({
+              operation: 'trigger',
+              type: changeType,
+              options: {
+                type: 'baseline-full-export'
+              }
             });
           }
           break;
@@ -462,11 +492,11 @@ module.exports = function(revision, options, callback) {
 
   async.waterfall(
     [
+      getCurrentVersion,
       listChangedFiles,
       processChanges,
       checkNotInstalledWidgets,
       checkNotInstalledAppLevels,
-      checkChangedEmailTemplates,
       buildDeployJson,
       storeDeployJson
     ],

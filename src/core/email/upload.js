@@ -36,6 +36,28 @@ module.exports = function(emailId, settings, callback) {
     });
   };
 
+  var replaceNameBySite = function(callback) {
+    var templatePath = path.join(tempFolder, 'html_body.ftl');
+    if(settings.siteId === 'siteCA') {
+      fs.rename(templatePath, `${tempFolder}/html_body_siteUS.ftl`, function(err) {
+        if ( err ) {
+          winston.debug(err);
+          callback('Error while renaming email template name');
+        }
+        fs.rename(`${tempFolder}/html_body_siteCA.ftl`, templatePath, function(err) {
+          if ( err ) {
+            winston.debug(err);
+            callback('Error while renaming email template name');
+          } else {
+            callback();
+          }
+        });
+      });
+    } else {
+      callback();
+    }
+  };
+
   /**
    * Bundle template file.
    */
@@ -147,6 +169,7 @@ module.exports = function(emailId, settings, callback) {
     [
       checkEmailPath,
       ncp.bind(null, sourceDir, tempFolder),
+      replaceNameBySite,
       bundleTemplate,
       zipFiles,
       uploadFileToOCC,

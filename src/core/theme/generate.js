@@ -70,27 +70,5 @@ module.exports = function(callback, options) {
       winston.info('Downloading parsed CSS...');
       _downloadParsedCss.call(self, _parsedCssDest, callback, httpAuth, options.site);
     },
-    function(callback) {
-      winston.info('Copying fonts to hologram dir...');
-      var fileGeneralPath = path.join(_config.dir.project_root, 'hologram', 'docs', 'file', 'general');
-
-      fs.ensureDir(fileGeneralPath, function (error) {
-        if(error) {
-          return callback(error);
-        }
-
-        ncp(path.join(_config.dir.project_root, 'images'), fileGeneralPath, callback);
-      });
-    },
-    function(callback) {
-      winston.info('Running hologram...');
-      exec('hologram', { cwd: _config.dir.project_root }, function (error) {
-        if(error) {
-          winston.warn('The theme has been updated successfuly, although there was some error with "hologram", maybe you don\'t have it installed. It\'s only required to generate the styleguide');
-        }
-
-        callback();
-      });
-    }
   ], callback);
 };
