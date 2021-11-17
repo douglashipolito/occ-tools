@@ -9,6 +9,9 @@ This project must adhere to [this](https://github.com/olivierlacan/keep-a-change
 - Improved the `restore` command to support locales, layouts, pages backup
 - Added `download backup` command
 - Restore command now runs `upgrade` command if the extension is not available in the environment
+- Changing environment by passing env as parameter `occ-tools configs set-env -e c4tst`
+- Add releseVersion to deploy command `occ-tools deploy run "./deploy-scripts/test-deploy.json" -v 21.15.2-30`. `21.15.2-30` will be set in siteSettings
+- Removed parameter `head` from generate deploy command. It will grab version from siteSettings
 - Added support for automatic deployment:
   - Uploading and upgrading widgets
   - Uploading and upgrading appLevels

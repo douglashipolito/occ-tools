@@ -416,29 +416,35 @@ Configs.prototype.do_set_totp_code.help = (
 
 Configs.prototype.do_set_env = function(subcmd, opts, args, callback) {
   var occToolsConfigs = new _Configs();
-  var schema = setPromptSchema({
-    properties: {
-      name: {
-        description: 'Project\'s env name',
-        required: true,
-        message: 'Please type a Project environment'
+  var environment = opts.env;
+
+  if(!environment) {
+    var schema = setPromptSchema({
+      properties: {
+        name: {
+          description: 'Project\'s env name',
+          required: true,
+          message: 'Please type a Project environment'
+        }
       }
-    }
-  });
-
-  prompt.start();
-
-  prompt.get(schema, function (error, result) {
-    if(error) {
-      if (error.message === 'canceled') {
-        return callback('\nOperation canceled');
-      }else {
-        return callback(error.message);
+    });
+  
+    prompt.start();
+  
+    prompt.get(schema, function (error, result) {
+      if(error) {
+        if (error.message === 'canceled') {
+          return callback('\nOperation canceled');
+        }else {
+          return callback(error.message);
+        }
       }
-    }
-
-    occToolsConfigs.setEnv(result.name, callback);
-  });
+  
+      occToolsConfigs.setEnv(result.name, callback);
+    });
+  } else {
+    occToolsConfigs.setEnv(environment, callback);
+  }
 };
 
 Configs.prototype.do_set_env.help = (
@@ -447,6 +453,15 @@ Configs.prototype.do_set_env.help = (
   '     {{name}} {{cmd}} [options] \n\n' +
   '{{options}}'
 );
+
+Configs.prototype.do_set_env.options = [
+  {
+    names: ['env', 'e'],
+    helpArg: '<env>',
+    type: 'string',
+    help: '(optional) The environment that you want to use.'
+  }
+];
 
 Configs.prototype.do_set_user_commands_path = function(subcmd, opts, args, callback) {
   var occToolsConfigs = new _Configs();

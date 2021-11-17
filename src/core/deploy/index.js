@@ -21,9 +21,9 @@ function Deploy(environment, options) {
 
 util.inherits(Deploy, EventEmitter);
 
-Deploy.prototype.run = function(deployInstructions) {
+Deploy.prototype.run = function(deployInstructions, releaseVersion) {
   var self = this;
-  _run.call(self, deployInstructions, function(error) {
+  _run.call(self, deployInstructions, releaseVersion, function(error) {
     if (error) {
       self.emit('error', error);
     } else {

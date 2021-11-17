@@ -9,6 +9,8 @@ var github = require('../github');
 var config = require('../config');
 var Widget = require('../widget');
 
+const { getSiteSetting } = require('../site-settings/get');
+
 function skipFile(folder, file) {
   winston.info(
     'Skipping path %s',
@@ -157,6 +159,7 @@ function processTypes(changes, filePath) {
 
 module.exports = function(revision, options, callback) {
   var self = this;
+  var _currentVersion;
   var _changedFiles;
   var _deployJson = [];
   var _ignoreSearchFolders = [
@@ -188,9 +191,24 @@ module.exports = function(revision, options, callback) {
     index: false
   };
 
+  const getCurrentVersion = async function(callback) {
+    try {
+      const response = await getSiteSetting('customSiteSettings', 'siteUS', self._occ);
+      if (response && response.data && response.data.currentReleaseVersion) {
+        _currentVersion = response.data.currentReleaseVersion;
+        callback();
+      } else {
+        winston.info('This extension is not installed on site.');
+        callback('This extension is not installed on site.');
+      }
+    } catch (error) {
+      callback(error.message || error);
+    }
+  };
+
   var listChangedFiles = function(callback) {
     winston.info('Listing changed files');
-    github.listChangedFiles(revision, options.head, function(error, fileList) {
+    github.listChangedFiles(revision, _currentVersion, function(error, fileList) {
       if (error) {
         callback(error);
       } else {
@@ -474,6 +492,7 @@ module.exports = function(revision, options, callback) {
 
   async.waterfall(
     [
+      getCurrentVersion,
       listChangedFiles,
       processChanges,
       checkNotInstalledWidgets,

@@ -15,7 +15,9 @@ var Search = require('../search');
 var Stack = require('../stack');
 var Email = require('../email');
 
-module.exports = function(deployInstructions, callback) {
+const { getSiteSetting } = require('../site-settings/get');
+
+module.exports = function(deployInstructions, releaseVersion, callback) {
   var self = this;
 
   var errors = [];
@@ -189,13 +191,18 @@ module.exports = function(deployInstructions, callback) {
       if (err) {
         callback(err);
       } else {
-        if (errors && errors.length) {
-          winston.error('The following errors were found during the deploy');
-          console.table(errors);
-        } else {
-          winston.info('No errors were found during the deploy');
-        }
-        callback();
+        updateReleaseVersion(releaseVersion, self._occ, function(err) {
+          if(err) {
+            errors.push({ type: 'update', id: 'releaseVersion', error: err });
+          }
+          if (errors && errors.length) {
+            winston.error('The following errors were found during the deploy');
+            console.table(errors);
+          } else {
+            winston.info('No errors were found during the deploy');
+          }
+          callback();
+        });
       }
     }
   );
@@ -508,3 +515,35 @@ function operationNotSupported(errors, operation) {
     )
   });
 }
+
+const updateReleaseVersion = async (releaseVersion, occ, callback) => {
+  try {
+    const response = await getSiteSetting('customSiteSettings', 'siteUS', occ);
+    if (response && response.data && response.data.currentReleaseVersion) {
+      let data = {
+        ...response.data,
+        currentReleaseVersion: releaseVersion
+      };
+      var options = {
+        api: '/sitesettings/customSiteSettings',
+        method: 'put',
+        body: data,
+        headers: {
+          'x-ccsite': 'siteUS'
+        }
+      };
+      occ.request(options, function (error, response) {
+        if (error || response.errorCode) {
+          winston.error('Could not update release version');
+          callback(error || response.message);
+        }
+        callback();
+      });
+    } else {
+      winston.info('This extension is not installed on site.');
+      callback('This extension is not installed on site.');
+    }
+  } catch (error) {
+    callback(error.message || error);
+  }
+};

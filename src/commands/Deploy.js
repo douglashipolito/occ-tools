@@ -16,9 +16,14 @@ util.inherits(Deploy, Cmdln);
 
 Deploy.prototype.do_run = function(subcmd, opts, args, callback) {
   var file = args[0];
+  var releaseVersion = opts.releaseVersion;
 
   if (!file) {
-    return callback('Deploy file not specified not specified.');
+    return callback('Deploy file not specified.');
+  }
+
+  if (!releaseVersion) {
+    return callback('Release version not specified');
   }
 
   try {
@@ -51,15 +56,24 @@ Deploy.prototype.do_run = function(subcmd, opts, args, callback) {
       return callback(err);
     });
 
-    deploy.run(deployInstructions);
+    deploy.run(deployInstructions, releaseVersion);
   });
 };
-
 
 Deploy.prototype.do_run.help = (
   'Execute a deploy script.\n\n' +
   'Usage:\n' +
-  '     {{name}} {{cmd}} <deploy-instructions-file>'
+  '     {{name}} {{cmd}} <deploy-instructions-file> [options] \n\n' +
+  '{{options}}'
 );
+
+Deploy.prototype.do_run.options = [
+  {
+    names: ['releaseVersion', 'v'],
+    helpArg: '<releaseVersion>',
+    type: 'string',
+    help: '(Required) Provide version that will be updated in custom site settings.'
+  }
+];
 
 module.exports = Deploy;
