@@ -56,14 +56,7 @@ function uploadSSE(name, opts, callback) {
     return targetProperty;
   }
 
-  /**
-   * Install Node Modules
-   */
-  var installModules = function(installationCallback) {
-    if(!opts.npm) {
-      return installationCallback();
-    }
-
+  var runDefaultNPMInstallation = function (installationCallback) {
     async.waterfall([
       function(next) {
         winston.info('Removing node_modules');
@@ -82,6 +75,38 @@ function uploadSSE(name, opts, callback) {
         }
       }
     ], installationCallback);
+  };
+
+  var runOCCInstallNPMInstallation = function (occInstallCommands, installationCallback) {
+    winston.info('The script "occ:install" is present in the package.json of the SSE. This script will be ran now.');
+    winston.info('Running: ' + occInstallCommands + '\n');
+
+    async.waterfall([
+      function(next) {
+        if(shelljs.exec('cd ' + '"' + sourceDir + '" && ' + occInstallCommands).code !== 0) {
+          next('Error on installing dependencies');
+        } else {
+          next();
+        }
+      }
+    ], installationCallback);
+  };
+
+  /**
+   * Install Node Modules
+   */
+  var installModules = function(installationCallback) {
+    if(!opts.npm) {
+      return installationCallback();
+    }
+
+    var scripts = pkgJson.scripts;
+
+    if(scripts && scripts['occ:install']) {
+      runOCCInstallNPMInstallation(scripts['occ:install'], installationCallback);
+    } else {
+      runDefaultNPMInstallation(installationCallback);
+    }
   };
 
   /**
