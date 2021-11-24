@@ -2,10 +2,17 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [2.0.0-beta.62] - 2021-11-24]
+
+### Fixed
+- Issue in the download theme. The lodash.get was not being required properly.
+
+
 ## [2.0.0-beta.61] - 2021-11-23]
 
 ### Added
 - Support to run the npm script command `occ:install` if present in the package.json in the SSEs. It will be ran if the argument `-i` is provided.
+
 ## [2.0.0-beta.60] - 2021-11-03]
 
 ### Added
