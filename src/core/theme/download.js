@@ -5,7 +5,7 @@ var path = require('path');
 var util = require('util');
 var async = require('async');
 var winston = require('winston');
-var get = require('lodash');
+var get = require('lodash/get');
 var _configs = require('../config');
 
 /**
