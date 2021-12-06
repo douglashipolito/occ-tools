@@ -6,6 +6,8 @@ var path = require('path');
 var _config = require('../config');
 var fs = require('fs-extra');
 var util = require('util');
+var isEmpty = require('lodash/isEmpty');
+var pick = require('lodash/pick');
 
 /**
  * Get the widget.json configuration
@@ -101,7 +103,7 @@ var createInstances = function (widgetType, backup, occ, config, existingInstanc
         }
 
         if(response) {
-          winston.info('New instance created %s', response.repositoryId);
+          winston.info('New instance created %s for deleted instance %s', response.repositoryId, instance.id);
           // store the new instances indexed by the previous instance ID
           newInstances[instance.id] = response.repositoryId;
         } else {
@@ -126,12 +128,13 @@ var createInstances = function (widgetType, backup, occ, config, existingInstanc
  * @param {object} instances The new widget instances
  * @param {object} backup The backup information
  */
-var replaceWidgetInstaces = function(structure, instances, backup){
-  if (structure.regions){
+var replaceWidgetInstaces = function(structure, instances, backup) {
+  if (structure.regions) {
     structure.regions.forEach(function (region) {
       if (region.regions) {
         replaceWidgetInstaces(region, instances, backup);
       }
+
       region.widgets.forEach(function (widget) {
         if (backup.widgetIds.includes(widget.repositoryId)) {
           widget.repositoryId = instances[widget.repositoryId];
@@ -172,6 +175,7 @@ var placeInstances = function (widgetType, backup, occ, config, instances, callb
           'x-ccasset-language': 'en'
         }
       };
+
       occ.request(request, function (error, response) {
         response = response || {};
 
@@ -274,30 +278,36 @@ var restoreSiteAssociations = function (widgetType, backup, occ, instances, glob
  * @param {Function} callback The callback function
  */
 var restoreLocales = function (widgetType, backup, occ, instances, callback) {
-  async.forEach(backup.widgetIds, function (widgetId, cbRestore) {
+  async.forEachSeries(backup.widgetIds, function (widgetId, cbRestore) {
     var instanceId = instances[widgetId];
     var widgetLocales = backup.locales[widgetId];
 
-    async.forEachOf(widgetLocales, function (localeResource, localeName, cbLocale) {
-      if (!localeResource) {
+    async.forEachOfSeries(widgetLocales, function (localeResource, localeName, cbLocale) {
+      var payload = pick(localeResource, 'custom');
+
+      if (!payload || isEmpty(payload.custom)) {
+        winston.info('Skiping "%s" locale information for widget %s', localeName, instanceId);
         return cbLocale();
       }
 
-      winston.info('Restoring "%s" locale information for widget %s', localeName, instanceId);
+      winston.info('Restoring "%s" locale information for widget %s...', localeName, instanceId);
 
       occ.request({
-        api: util.format('widgets/%s/locale/en', instanceId),
+        api: util.format('widgets/%s/locale/%s', instanceId, localeName),
         method: 'put',
         headers: {
-          'X-CCAsset-Language': 'en'
+          'X-CCAsset-Language': localeName
         },
-        body: localeResource
-      }, function (err) {
-        if (err) {
+        body: payload
+      }, function (err, response) {
+        var error = err || (response && response.errorCode ? response.message : false);
+
+        if (error) {
           winston.warn('Unable to restore "%s" locale information for widget %s', localeName, instanceId);
-          window.warn(JSON.stringify(localeResource, null, 2));
+          winston.warn('Payload details: %s', JSON.stringify(payload, null, 2));
+          winston.warn('Error details: %s', JSON.stringify(error, null, 2));
         } else {
-          winston.info('Success restoring "%s" locale information for widget %s', localeName, instanceId);
+          winston.info('Success restoring "%s" locale information for widget %s!', localeName, instanceId);
         }
 
         cbLocale();
