@@ -2,6 +2,11 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [2.0.0-beta.63] - 2021-12-06]
+
+### Fixed
+- Fixed issue restoring locales on upgrade command
+
 ## [2.0.0-beta.62] - 2021-11-24]
 
 ### Fixed
