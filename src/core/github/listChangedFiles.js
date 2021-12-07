@@ -1,53 +1,64 @@
 
-var exec = require('child_process').exec;
 var util = require('util');
+var exec = util.promisify(require('child_process').exec);
 
 var _config = require('../config');
 
 const getCommitHash = async (currentVersion, callback) => {
-  return new Promise(resolve => {
-    exec(
+  try {
+    const { stdout, stderr } = await exec(
       util.format('git rev-parse %s', currentVersion),
-      { cwd: _config.dir.project_base },
-      function (error, out, err) {
-        if (error || err) {
-          callback(error || err);
-        }
-        resolve(out.split('\n')[0]);
-      }
+      { cwd: _config.dir.project_base }
     );
-  });
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    const output = stdout.split('\n');
+    if (!output.length) {
+      throw new Error(`Cannot get commit hash for ${currentVersion}`);
+    }
+    return output[0];
+  } catch (error) {
+    callback(error);
+  }
 };
 
 const checkIfCommitIsAncestor = async (revision, currentVersionHash, callback) => {
-  return new Promise(resolve => {
-    exec(
+  try {
+    const { stdout, stderr } = await exec(
       util.format('git merge-base --is-ancestor %s %s; echo $?', revision, currentVersionHash),
-      { cwd: _config.dir.project_base },
-      function (error, stdout, stderr) {
-        if (error || stderr) {
-          callback(error || stderr);
-        }
-        const isAncestor = stdout.split('\n')[0] === '0' ? true : false;
-        resolve(isAncestor);
-      }
+      { cwd: _config.dir.project_base }
     );
-  });
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    const output = stdout.split('\n');
+    if (!output.length) {
+      throw new Error(`Cannot check if ${revision} is ancestor of ${currentVersionHash}`);
+    }
+    return output[0] === '0';
+  } catch (error) {
+    callback(error);
+  }
 };
 
 const getChangedFilesBetweenCommits = async (diffCommand, callback) => {
-  return new Promise(resolve => {
-    exec(
+  try {
+    const { stdout, stderr } = await exec(
       diffCommand,
-      { cwd: _config.dir.project_base },
-      function (error, stdout, stderr) {
-        if (error || stderr) {
-          callback(error || stderr);
-        }
-        resolve(stdout.split('\n'));
-      }
+      { cwd: _config.dir.project_base }
     );
-  });
+    if (stderr) {
+      throw new Error(stderr);
+    }
+    const output = stdout.split('\n');
+    if (output.length <= 1) {
+      throw new Error(`No changes found for ${diffCommand}`);
+    }
+    return output;
+  } catch (error) {
+    callback(error);
+  }
 };
 
 module.exports = async function (revision, currentVersion, callback) {
