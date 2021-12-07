@@ -517,6 +517,7 @@ function operationNotSupported(errors, operation) {
 }
 
 const updateReleaseVersion = async (releaseVersion, occ, callback) => {
+  winston.info(`Updating current release version to ${releaseVersion}`);
   try {
     const response = await getSiteSetting('customSiteSettings', 'siteUS', occ);
     if (response && response.data && response.data.currentReleaseVersion) {

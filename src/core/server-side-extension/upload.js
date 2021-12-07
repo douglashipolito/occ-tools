@@ -21,8 +21,8 @@ function uploadSSE(name, opts, callback) {
   var sourceDir = path.join(_config.dir.server_side_root, name);
 
   // get occ tools settings from package json
-  var pkgJson = fs.readJSONSync(path.join(sourceDir, 'package.json'));
-  var occToolsConfig = pkgJson.occToolsConfig || {};
+  var pkgJson;
+  var occToolsConfig;
 
   // set allowed configurations
   var allowedConfigs = ['ignore'];
@@ -112,13 +112,16 @@ function uploadSSE(name, opts, callback) {
   /**
    * Checks if the resource folder exists locally.
    */
-  var checkSSEPath = function(callback) {
+  var checkSSEPathAndGetInfo = function(callback) {
     winston.info('Preparing upload for SSE "' + name + '"...');
     winston.info('Checking files consistency...');
     fs.lstat(sourceDir, (error) => {
       if (error) {
         callback('Extension does not exist locally.');
       }
+
+      pkgJson = fs.readJSONSync(path.join(sourceDir, 'package.json'));
+      occToolsConfig = pkgJson.occToolsConfig || {};
 
       callback();
     });
@@ -244,7 +247,7 @@ function uploadSSE(name, opts, callback) {
 
   async.waterfall(
     [
-      checkSSEPath,
+      checkSSEPathAndGetInfo,
       installModules,
       zipFiles,
       pushSSEConfigs,
