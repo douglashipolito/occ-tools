@@ -30,11 +30,11 @@ function getFiles(globPattern, callback) {
 
   var globCallback = function (error, fileList) {
     if (error) {
-      callback(error);
+      return callback(error);
     }
 
     if (!fileList || !fileList.length) {
-      callback(util.format('No file matching the pattern %s', globPattern));
+      return callback(util.format('No file matching the pattern %s', globPattern));
     }
 
     callback(null, fileList);
