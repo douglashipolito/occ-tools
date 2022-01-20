@@ -53,7 +53,7 @@ util.inherits(OccTools, Cmdln);
 function blockCommandsByEnvBranch(args, callback) {
   var allowedCommands = ['version', 'configs', 'list', 'user-commands', 'browser', 'proxy', 'compile', 'generate', 'env', 'totp-code', 'vault-token', 'use-app-key'];
   var command = args[0];
-  var containsHelpFlag = args.filter(function (arg) {
+  var containsHelpFlag = args.find(function (arg) {
     return /help|--h/.test(arg);
   });
 
@@ -80,10 +80,10 @@ function blockCommandsByEnvBranch(args, callback) {
   }
 
   var processBranchName = function (branch) {
-    if(branch !== allowedBranch) {
+    if(!new RegExp(allowedBranch).test(branch)) {
       winston.error(`You can't run this command outside the environment branch or in the wrong environment branch.`);
       winston.error(`You are currently trying to use the command "${command}" on the environment "${currentProjectEnv.name}" from the branch "${branch}".`);
-      winston.error(`The allowed branch for this operation is "${allowedBranch}"`);
+      winston.error(`The allowed branch for this operation should match the following branch pattern "${allowedBranch}"`);
       winston.error(`Please change to "${allowedBranch}" branch and try again.`);
       return callback(true);
     }
