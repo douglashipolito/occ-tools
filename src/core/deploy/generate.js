@@ -20,7 +20,7 @@ function skipFile(folder, file) {
 
 function processCustomWidget(changes, filePath) {
   if (filePath.length > 1) {
-    var forcedUpgradeWidgets = ['oeCheckoutAddressBook', 'oeHeroBanner'];
+    var forcedUpgradeWidgets = ['oeCheckoutAddressBook', 'oeHeroBanner', 'oeFaqSection'];
 
     if(forcedUpgradeWidgets.includes(filePath[0])) {
       changes.widget.upgrade.add(filePath[0]);
