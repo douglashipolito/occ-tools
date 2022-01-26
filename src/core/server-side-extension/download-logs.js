@@ -33,9 +33,11 @@ module.exports = function(options, callback) {
 
     winston.info('Downloading extension server logs from %s (level: %s)...', options.date || 'today', loggingLevel);
     self._occ.request(requestOptions, function(error, body) {
-      self._occ.checkError(error, body, callback);
+      var hasErrors = self._occ.checkError(error, body, callback);
 
-      callback();
+      if(!hasErrors) {
+        callback();
+      }
     });
   };
 

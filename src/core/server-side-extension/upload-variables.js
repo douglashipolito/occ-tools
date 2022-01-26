@@ -64,9 +64,11 @@ module.exports = function(variableName, settings, callback) {
     }
 
     self._occ.request(options, function(error, body) {
-      self._occ.checkError(error, body, callback);
+      var hasErrors = self._occ.checkError(error, body, callback);
 
-      callback();
+      if(!hasErrors) {
+        callback();
+      }
     });
   };
 
