@@ -58,9 +58,15 @@ OCC.prototype.publish = function(callback) {
 OCC.prototype.checkError = function(error, body, callback) {
   if (error) {
     callback(util.format('%s', error));
-  } else if (body && (body.errorCode || body.error || parseInt(body.status) >= 400)) {
-    callback(util.format('[%s] %s',  body.status || '500' , body.message || 'General error received from OCC.'));
+    return true;
   }
+
+  if (body && (body.errorCode || body.error || parseInt(body.status) >= 400)) {
+    callback(util.format('[%s] %s',  body.status || '500' , body.message || 'General error received from OCC.'));
+    return true;
+  }
+
+  return false;
 };
 
 module.exports = OCC;

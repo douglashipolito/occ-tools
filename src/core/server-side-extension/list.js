@@ -19,23 +19,25 @@ module.exports = function(callback) {
   winston.info('Listing server-side extensions...');
   var self = this;
   self._occ.request('serverExtensions', function(error, body) {
-    self._occ.checkError(error, body, callback);
+    var hasErrors = self._occ.checkError(error, body, callback);
 
-    if (body.items && body.items.length > 0) {
-      var sses = [];
-      body.items.forEach(function(sse) {
-        sses.push({
-          ID: sse.name.replace('.zip', ''),
-          'Last Modified': new Date(sse.lastModified).toLocaleString(),
-          Size: formatByteSize(sse.size),
-          Checksum: sse.checksum
+    if(!hasErrors) {
+      if (body.items && body.items.length > 0) {
+        var sses = [];
+        body.items.forEach(function(sse) {
+          sses.push({
+            ID: sse.name.replace('.zip', ''),
+            'Last Modified': new Date(sse.lastModified).toLocaleString(),
+            Size: formatByteSize(sse.size),
+            Checksum: sse.checksum
+          });
         });
-      });
-      console.table(sses);
-    } else {
-      winston.info('No server-side extension installed.');
-    }
+        console.table(sses);
+      } else {
+        winston.info('No server-side extension installed.');
+      }
 
-    callback();
+      callback();
+    }
   });
 };
