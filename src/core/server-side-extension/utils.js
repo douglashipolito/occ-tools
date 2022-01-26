@@ -14,17 +14,19 @@ function getVariables(items, occ, offset, callback) {
       }
     },
     function(error, body) {
-      occ.checkError(error, body, callback);
+      var hasErrors = occ.checkError(error, body, callback);
 
-      items = items.concat(body.items);
-      var next = body.links.find(function(item) {
-        return item.rel === 'next';
-      });
+      if(!hasErrors) {
+        items = items.concat(body.items);
+        var next = body.links.find(function(item) {
+          return item.rel === 'next';
+        });
 
-      if (next) {
-        getVariables(items, occ, offset + _configs.OCC_DEFAULT_LIMIT, callback);
-      } else {
-        callback(null, items);
+        if (next) {
+          getVariables(items, occ, offset + _configs.OCC_DEFAULT_LIMIT, callback);
+        } else {
+          callback(null, items);
+        }
       }
     }
   );

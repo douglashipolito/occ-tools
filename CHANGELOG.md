@@ -2,6 +2,11 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [2.0.0-beta.65] - 2022-01-26]
+
+### Fixed
+- Issue regarding the checkError, the callback was being called twice, inside the checkError and outside
+- Issue when uploading oeHeroBanner. For now, we are going to upgrade the oeHeroBanner instead of uploading due to the problem with locales(It's removing the locales)
 
 ## [2.0.0-beta.64] - 2022-01-20]
 

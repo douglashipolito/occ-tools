@@ -37,11 +37,13 @@ module.exports = function(name, callback) {
               'method': 'delete',
               'body': { }
             };
-            self._occ.request(options, function(error, body){
-              self._occ.checkError(error, body, callback);
+            self._occ.request(options, function(error, body) {
+              var hasErrors = self._occ.checkError(error, body, callback);
 
-              winston.info('Server-side extension variable %s deleted', v.id);
-              callback();
+              if(!hasErrors) {
+                winston.info('Server-side extension variable %s deleted', v.id);
+                callback();
+              }
             });
           },
           callback

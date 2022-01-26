@@ -20,7 +20,9 @@ function skipFile(folder, file) {
 
 function processCustomWidget(changes, filePath) {
   if (filePath.length > 1) {
-    if(filePath[0] === 'oeCheckoutAddressBook') {
+    var forcedUpgradeWidgets = ['oeCheckoutAddressBook', 'oeHeroBanner', 'oeFaqSection'];
+
+    if(forcedUpgradeWidgets.includes(filePath[0])) {
       changes.widget.upgrade.add(filePath[0]);
     } else {
       switch (filePath[1]) {
@@ -83,7 +85,7 @@ const processEmails = (changes, filePath) => {
     case doesContainSite(lastElement):
       changes.email.siteCA.add(filePath[0]);
       break;
-    default: 
+    default:
       skipFile(`${occConfigs.dir.storefront_dir_name}'/emails`, filePath);
       break;
   }
@@ -235,7 +237,7 @@ module.exports = function(revision, options, callback) {
         //     skipFile(null, filePath);
         //   }
         //   break;
-        case 'search': 
+        case 'search':
           if (filePath[filePath.length - 1] === 'facets.json') {
             _changes.facets = true;
             _changes.index = true;
