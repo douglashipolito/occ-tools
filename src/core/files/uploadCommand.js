@@ -11,7 +11,6 @@ var os = require('os');
 var _config = require('../config');
 var projectSettingsFiles = _config.projectSettings['files-config'] || [];
 var CleanCSS = require('clean-css');
-var uploadAppLevel = require('../app-level/upload');
 
 // Number of parallel uploads
 var PARALLEL_UPLOADS = 8;
@@ -379,12 +378,6 @@ function cssBundle(options, done) {
   done(null, outputFile);
 }
 
-function postUpload(_settings, callback) {
-  async.waterfall([
-    uploadAppLevel.bind(this, [], {})
-  ], callback);
-}
-
 /**
  * Upload multiple files to OCC
  *
@@ -396,7 +389,6 @@ module.exports = function (globPattern, settings, callback) {
   async.waterfall([
     resolveProjectFilesPaths.bind(this),
     getFiles.bind(this, globPattern),
-    uploadFiles.bind(this, settings),
-    postUpload.bind(this, settings)
+    uploadFiles.bind(this, settings)
   ], callback);
 };
