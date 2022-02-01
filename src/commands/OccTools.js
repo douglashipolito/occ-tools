@@ -35,6 +35,7 @@ var Environment = require('../core/env');
 var getSitesIds = require('../core/sites/get');
 var PageTags = require('./PageTags');
 var OCC = require('../core/occ');
+var Hooks = require('../core/hooks');
 
 function OccTools(logger) {
   this.logger = logger;
@@ -116,15 +117,24 @@ OccTools.prototype.init = async function (options, args, callback) {
   var allArgs = Array.prototype.slice.call(arguments);
   var self = this;
 
+  logBox({ padding: 10, symbol: '-' })(`Executing command for: ${appConfig.environment.details.url}(${appConfig.environment.current})`);
+
+  // Start Hooks
+  self.hooks = new Hooks(options);
+
+  // Load available Hooks Modules
+  await self.hooks.loadHooksModules();
+
+  // Load Hooks for INIT event
+  await self.hooks.loadHooks(self.hooks.INIT_HOOK, callback);
+
   const sitesIds = await getSitesIds.call({
     _occ: new OCC('admin')
   }, options.site_id);
 
   await checkVersion();
 
-  logBox({ padding: 10, symbol: '-' })(`Executing command for: ${appConfig.environment.details.url}(${appConfig.environment.current})`);
-
-  blockCommandsByEnvBranch(args, options, function (finishProcess) {
+  blockCommandsByEnvBranch(args, options, async function (finishProcess) {
     if(finishProcess) {
       return callback(false);
     }
@@ -163,12 +173,18 @@ OccTools.prototype.init = async function (options, args, callback) {
       appConfig.credentials = appConfig.loginCredentialsApplicationKey;
     }
 
+    // Load Hooks for PRE event
+    await self.hooks.loadHooks(self.hooks.PRE_HOOK, callback);
+
     Cmdln.prototype.init.apply(this, allArgs);
   });
 };
 
-OccTools.prototype.fini = function (subcmd, error, callback) {
+OccTools.prototype.fini = async function (subcmd, error, callback) {
   const skipErrors = ['NoCommand'];
+
+  // Load Hooks for POST event
+  await this.hooks.loadHooks(this.hooks.POST_HOOK, callback);
 
   if (typeof error === 'object' && !skipErrors.includes(error.code)) {
     error.message ? winston.error(error.message) : winston.error(error);

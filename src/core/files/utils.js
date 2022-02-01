@@ -1,3 +1,4 @@
+var fs = require('fs-extra');
 var util = require('util');
 var path = require('path');
 var Glob = require('glob').Glob;
@@ -92,10 +93,20 @@ function generateFilePathMapping(filePath, settingsFolder) {
   }
 }
 
+async function fileExists(filePath) {
+  try {
+    await fs.lstat(filePath);
+    return true;
+  } catch(error) {
+    return false;
+  }
+}
+
 module.exports = {
   resolveProjectFilesPaths,
   getFileSetting,
   getFiles,
   getFilesPromisified,
-  generateFilePathMapping
+  generateFilePathMapping,
+  fileExists
 };

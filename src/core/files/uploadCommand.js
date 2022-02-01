@@ -217,6 +217,6 @@ module.exports = function (globPattern, settings, callback) {
   async.waterfall([
     resolveProjectFilesPaths.bind(this),
     getFiles.bind(this, globPattern),
-    uploadFiles.bind(this, settings)
+    // uploadFiles.bind(this, settings)
   ], callback);
 };

@@ -4,7 +4,6 @@ var winston = require("winston");
 
 module.exports = function (sitesIds) {
   const self = this;
-  winston.info(`Fetching sites`);
 
   return new Promise((resolve, reject) => {
     if(typeof sitesIds === 'string') {
