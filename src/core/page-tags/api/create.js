@@ -21,7 +21,7 @@ class Create {
 
   getScriptTag(name, type, source) {
     const assetVersion = config.assetsVersion;
-    const scriptTag = `<script class="msi-custom-script" data-asset-version="${assetVersion}" data-identifier="${name}"{{src}}>{{content}}</script>`;
+    const scriptTag = `<script class="occ-custom-script" data-asset-version="${assetVersion}" data-identifier="${name}"{{src}}>{{content}}</script>`;
 
     if(type === 'file') {
       return scriptTag.replace('{{src}}', ` src="${source}?v=${assetVersion}"`).replace('{{content}}', '');
