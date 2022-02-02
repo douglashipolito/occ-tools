@@ -70,11 +70,11 @@ PageTags.prototype.makeRequest = async function (commandOptions, requestConfig =
       }
 
       const responseFromServer = await this._occ.promisedRequest(requestOptions).catch(error => {
-        if(error.status === '404') {
+        if(typeof error === 'object' && error.status === '404') {
           return { notFound: true };
         }
 
-        throw new Error(error.message);
+        throw new Error(typeof error === 'object' ? error.message : error);
       });
 
       responses.push({ ...responseFromServer, siteId });
