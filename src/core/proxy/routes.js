@@ -1177,6 +1177,10 @@ routes.extraRoutes = function () {
           resolve (source)
         } else {
           proxyInstance.proxyServer.transpileExtraRoute({ source, fileSettings }, function (_err, fileCompiledPath) {
+            if(_err) {
+              winston.error(_err);
+            }
+
             resolve(fileCompiledPath)
           });
         }

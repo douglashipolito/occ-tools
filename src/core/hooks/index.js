@@ -32,12 +32,13 @@ class Hooks {
       return;
     }
 
+    winston.info('Loading hooks modules...');
+
     for(const hookKey in hooksFilesDefinition) {
       const hookFile = hooksFilesDefinition[hookKey];
       const hookFilePath = path.join(projectBaseFolder, hookFile);
 
       if(await fileExists(hookFilePath)) {
-        winston.info(`Loading hook module "${hookFilePath}"`);
         this.hooksModules[hookKey] = require(hookFilePath);
       } else {
         winston.warn(`Hook module doesn't exist "${hookFilePath}"`);
@@ -67,7 +68,13 @@ class Hooks {
         const hookModule = this.hooksModules[hookKey];
 
         winston.info(`Trigerring hook ${hookKey}`);
-        hookModule({ callback: callbackWrapper, options });
+        await hookModule({
+          callback: callbackWrapper,
+          args: options._args,
+          command: this.command,
+          subcommand: this.subcommand,
+          options
+        });
       }
     }
   }

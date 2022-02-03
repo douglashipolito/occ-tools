@@ -24,7 +24,7 @@ class Create {
     const scriptTag = `<script class="occ-custom-script" data-asset-version="${assetVersion}" data-identifier="${name}"{{src}}>{{content}}</script>`;
 
     if(type === 'file') {
-      return scriptTag.replace('{{src}}', ` src="${source}?v=${assetVersion}"`).replace('{{content}}', '');
+      return scriptTag.replace('{{src}}', ` src="${source}?_av=${assetVersion}"`).replace('{{content}}', '');
     }
 
     if(type === 'content') {
