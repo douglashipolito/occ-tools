@@ -6,7 +6,6 @@ var fs = require('fs-extra');
 var git = require('isomorphic-git');
 const { logBox } = require('console-log-it');
 var appConfig = require('../core/config');
-var checkVersion = require('../core/configs/version');
 
 git.plugins.set('fs', fs);
 
@@ -119,6 +118,13 @@ OccTools.prototype.init = async function (options, args, callback) {
 
   logBox({ padding: 10, symbol: '-' })(`Executing command for: ${appConfig.environment.details.url}(${appConfig.environment.current})`);
 
+  const sitesIds = await getSitesIds.call({
+    _occ: new OCC('admin')
+  }, options.site_id);
+
+  // Set Sites IDs
+  appConfig.sitesIds = sitesIds;
+
   // Start Hooks
   self.hooks = new Hooks(options);
 
@@ -127,12 +133,6 @@ OccTools.prototype.init = async function (options, args, callback) {
 
   // Load Hooks for INIT event
   await self.hooks.loadHooks(self.hooks.INIT_HOOK, callback);
-
-  const sitesIds = await getSitesIds.call({
-    _occ: new OCC('admin')
-  }, options.site_id);
-
-  await checkVersion();
 
   blockCommandsByEnvBranch(args, options, async function (finishProcess) {
     if(finishProcess) {
@@ -146,8 +146,7 @@ OccTools.prototype.init = async function (options, args, callback) {
       return;
     }
 
-    // Set Sites IDs
-    appConfig.sitesIds = sitesIds;
+
 
     if (options.verbose) {
       self.logger.transports.console.level = 'debug';

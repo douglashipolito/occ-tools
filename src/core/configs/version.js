@@ -10,7 +10,7 @@ function wait(delay) {
   })
 };
 
-module.exports = async function () {
+module.exports = async function (options = {}) {
   try {
     if(projectSettings['occ-tools-version']) {
       const baseOccToolsPath = path.join(__dirname, '..', '..', '..');
@@ -27,6 +27,11 @@ module.exports = async function () {
           { color: 'blue', message: 'Please run git pull inside the occ-tools folder and run npm install' },
           { color: 'magenta', message: 'Check the changelog in the occ-tools repository.' }
         );
+
+        if(options.exitProcess && !options.dev_mode) {
+          winston.error('Exiting occ-tools. please update/install the correct occ-tools version')
+          process.exit(0);
+        }
 
         await wait(3000);
       }
