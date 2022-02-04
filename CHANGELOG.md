@@ -2,6 +2,67 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+
+## [3.0.0] - 2022-02-04]
+
+### Added
+- Hooks Feature
+  - Now we can create hooks inside the project. Any command can be hooked, the accepted hooks patterns are:
+    - There 3 Hooks:
+      - `init` - This will be triggered when the occ-tools is about to start the command, this is ran before any validation, e.g: "upload-files-init"
+      - `pre` - This will be triggered when the occ-tools has started already and the command is about to be executed, this is ran after all validations, e.g: "upload-files-pre"
+      - `post` - This will be triggered when the command has been executed already, e.g: "upload-files-post"
+  - Available patterns:
+    - `{command}-{subcommand}-init` - Before the "command" and "subcommand" is initialized, e.g, "upload-files-init"
+    - `{command}-{subcommand}-pre` - Before the "command" and "subcommand" is executed, e.g, "upload-files-pre"
+    - `{command}-{subcommand}-post` - After the "command" and "subcommand" is executed, e.g, "upload-files-post"
+    - `{command}-init` - Before the "command" is initialized, e.g, "upload-init"
+    - `{command}-pre` - Before the "command" is executed, e.g, "upload-pre"
+    - `{command}-post` - After the "command" is executed, e.g, "upload-post"
+    - `occ-tools-init` - Before the occ-tools is initialized, e.g, "occ-tools-init"
+    - `occ-tools-pre` - Before the occ-tools is executed, e.g, "occ-tools-pre"
+    - `occ-tools-post` - After the occ-tools is executed, e.g, "occ-tools-post"
+  - In order to create a hook, you must create a new property in the file `occ-tools.project.json` following this format:
+```js
+"project-settings": {
+    "hooks": {
+      "upload-files-post": "./occ-tools-project-settings/hooks/upload-files-post.js"
+    }
+}
+```
+  - It must be defined inside the `project-settings` and the path to the file must be inside the project root.
+  - All commands and access to occ-tools is available, in the same way we have in the occ-tools user commands, so you can access the occ-tools modules, configs through `remote` global object.
+- Page Tags feature
+  - Now occ-tools supports the [Page Tags](https://docs.oracle.com/en/cloud/saas/cx-commerce/22a/ccint/understand-page-tags.html) Feature
+  - You must always provide the `area`, which is `head`, `body-start` or `body-end` and this determine where in the Page Tags this script must be included.
+  - The new command is `occ-tools page-tags`, these are the operations you can perform:
+    - `create` - This command will create a new Page in the occ environment. The available arguments are:
+      - `--file` - (Required) The JS File path. This must be available inside the /files folder
+      - `--name` - (Required) The name of the page tag. In case of multiple sites, a suffix -siteId will be added, such as "my-file-siteUS"
+      - `--type` - (Optional) This will set the script using "src" or in the script body. Valid values: file or content. Default(file)
+      - `--order` - (Optional) Sets the order of the script.
+      - `--enabled` - (Optional) Defines if the page tag will be enabled by default.
+      - `--append-version` - (Optional) If true, appends the assets version in the script tag.
+    - `update`
+      - `--file` - (Required) The JS File path. This must be available inside the /files folder
+      - `--query` - (Optional) SCIM Query to find the tags to be deleted.
+      - `--type` - (Optional) This will set the script using "src" or in the script body. Valid values: file or content. Default(file)
+      - `--order` - (Optional) Sets the order of the script.
+      - `--enabled` - (Optional) Defines if the page tag will be enabled by default.
+      - `--append-version` - (Optional) If true, appends the assets version in the script tag.
+      - `--tagId` - (Optional) The Tag id to be deleted (default: false).
+    - `delete`
+      - `--tagId` - (Optional) The Tag id to be deleted (default: false).
+      - `--query` - (Optional) SCIM Query to find the tags to be deleted.
+    - `list`
+      - `--tagId` - (Optional) The Tag id to be deleted (default: false).
+      - `--query` - (Optional) SCIM Query to find the tags to be deleted.
+  - This command will run all available operations for the Page Tags. This is possible to create the script as `content`, which means the JS file will be transpiled and content will be appended as `<script>` content or the `file`, where occ-tools will transpile the file, send the file to OCC and set the file path as `src` in the `script` tag. It will also add `data-asset-version` and `data-identifier` to the `script` tag
+- Sites fetching
+  - Occ-tools will now fetch the available sites and make it available in the occ-tools global configs. In case you are developing a new command or improving some, this can be used to match the site.
+- Removed the app-level upload from the upload files
+  - Since we have the hooks now, we don't need this in the core anymore.
+
 ## [2.0.0-beta.65] - 2022-01-26]
 
 ### Fixed
