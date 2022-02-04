@@ -27,6 +27,16 @@ class Hooks {
     this.options = options;
   }
 
+  isHookValid(hookKey, hookType) {
+    const validHooks = [
+      `${this.command}-${hookType}`,
+      `${this.command}-${this.subcommand}-${hookType}`,
+      `occ-tools-${hookType}`
+    ];
+
+    return !!validHooks.find(hook => hookKey === hook)
+  }
+
   async loadHooksModules() {
     if(!hooksFilesDefinition) {
       return;
@@ -64,10 +74,13 @@ class Hooks {
     };
 
     for(const hookKey in this.hooksModules) {
-      if(commandHook === hookKey) {
+      if(this.isHookValid(hookKey, hookType)) {
         const hookModule = this.hooksModules[hookKey];
 
+        winston.info('');
         winston.info(`Trigerring hook ${hookKey}`);
+        winston.info('');
+
         await hookModule({
           callback: callbackWrapper,
           args: options._args,

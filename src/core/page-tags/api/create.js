@@ -20,8 +20,9 @@ class Create {
   }
 
   getScriptTag(name, type, source) {
+    const shouldAppendVersion = this.options.appendVersion;
     const assetVersion = config.assetsVersion;
-    const scriptTag = `<script class="occ-custom-script" data-asset-version="${assetVersion}" data-identifier="${name}"{{src}}>{{content}}</script>`;
+    const scriptTag = `<script class="occ-custom-script"${shouldAppendVersion ? ` data-asset-version="${assetVersion}" ` : ' '}data-identifier="${name}"{{src}}>{{content}}</script>`;
 
     if(type === 'file') {
       return scriptTag.replace('{{src}}', ` src="${source}?_av=${assetVersion}"`).replace('{{content}}', '');
@@ -52,7 +53,6 @@ class Create {
 
   async getJsFileContent(name, file) {
     try {
-      await resolveProjectFilesPaths();
       const fileName = path.basename(file);
 
       // Generate temp file
@@ -119,8 +119,11 @@ class Create {
 
   async prepareRequest() {
     try {
-      const { type, enabled, order, tagId } = this.options;
+      await resolveProjectFilesPaths();
+      const { type, enabled, tagId } = this.options;
       let resolvedFile = await this.resolveFilePath(this.options.file);
+      const fileSettings = getFileSetting(resolvedFile);
+      const order = fileSettings['page-tag-order'] || this.options.order;
       this.options.file = resolvedFile;
 
       const body = {

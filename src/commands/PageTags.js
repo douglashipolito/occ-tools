@@ -68,7 +68,7 @@ PageTags.prototype.do_list.options = [
 PageTags.prototype.do_create = function(_subcmd, opts, args, callback) {
   const pageTags = new PageTagsCore('admin');
   const area = args[0];
-  const { file, type, order, name, enabled } = opts;
+  const { file, type, order, name, enabled, append_version } = opts;
 
   if(!name) {
     return callback('You must provide a tag name by using the argument --name=<tagName>');
@@ -97,7 +97,8 @@ PageTags.prototype.do_create = function(_subcmd, opts, args, callback) {
     type,
     order,
     name,
-    enabled
+    enabled,
+    appendVersion: append_version
   });
 };
 
@@ -143,6 +144,13 @@ PageTags.prototype.do_create.options = [
     type: 'bool',
     default: true,
     help: '(Optional) Defines if the page tag will be enabled by default.'
+  },
+  {
+    names: ['append-version', 'a'],
+    helpArg: '<append-version>',
+    type: 'bool',
+    default: false,
+    help: '(Optional) If true, appends the assets version in the script tag.'
   }
 ];
 
@@ -203,7 +211,7 @@ PageTags.prototype.do_delete.options = [
 PageTags.prototype.do_update = function(_subcmd, opts, args, callback) {
   const pageTags = new PageTagsCore('admin');
   const area = args[0];
-  const { file, type, order, enabled, tagId, query } = opts;
+  const { file, type, order, enabled, tagId, query, append_version } = opts;
 
   if(!file) {
     return callback('You must provide a js file path by using the argument --file=<filePath>');
@@ -233,7 +241,8 @@ PageTags.prototype.do_update = function(_subcmd, opts, args, callback) {
     order,
     enabled,
     tagId,
-    query
+    query,
+    appendVersion: append_version
   });
 };
 
@@ -286,6 +295,13 @@ PageTags.prototype.do_update.options = [
     type: 'bool',
     default: true,
     help: '(Optional) Defines if the page tag will be enabled by default.'
+  },
+  {
+    names: ['append-version', 'a'],
+    helpArg: '<append-version>',
+    type: 'bool',
+    default: false,
+    help: '(Optional) If true, appends the assets version in the script tag.'
   }
 ];
 
