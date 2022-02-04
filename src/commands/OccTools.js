@@ -6,7 +6,6 @@ var fs = require('fs-extra');
 var git = require('isomorphic-git');
 const { logBox } = require('console-log-it');
 var appConfig = require('../core/config');
-var checkVersion = require('../core/configs/version');
 
 git.plugins.set('fs', fs);
 
@@ -32,6 +31,10 @@ var Deploy = require('./Deploy.js');
 var Instance = require('./Instance.js');
 var LocalServer = require('./LocalServer.js');
 var Environment = require('../core/env');
+var getSitesIds = require('../core/sites/get');
+var PageTags = require('./PageTags');
+var OCC = require('../core/occ');
+var Hooks = require('../core/hooks');
 
 function OccTools(logger) {
   this.logger = logger;
@@ -44,20 +47,24 @@ function OccTools(logger) {
       { name: 'version', type: 'bool', help: 'Print version and exit.' },
       { names: ['totp-code', 'y'], type: 'string', help: 'It will force mfalogin with the provided Totp Code.' },
       { names: ['use-app-key', 'a'], type: 'bool', help: 'Forces the application key usage.' },
+      { names: ['dev-mode', 'd'], type: 'bool', help: 'Dev Mode.' },
+      { names: ['site-id', 's'], type: 'string', help: 'The Site ID.' }
     ]
   });
 }
 
 util.inherits(OccTools, Cmdln);
 
-function blockCommandsByEnvBranch(args, callback) {
+function blockCommandsByEnvBranch(args, options, callback) {
   var allowedCommands = ['version', 'configs', 'list', 'user-commands', 'browser', 'proxy', 'compile', 'generate', 'env', 'totp-code', 'vault-token', 'use-app-key'];
   var command = args[0];
+  var isDevMode = options.dev_mode;
+
   var containsHelpFlag = args.find(function (arg) {
     return /help|--h/.test(arg);
   });
 
-  if(args.lenght === 1 || containsHelpFlag || !command || allowedCommands.indexOf(command) > -1) {
+  if(isDevMode || args.lenght === 1 || containsHelpFlag || !command || allowedCommands.indexOf(command) > -1) {
     return callback();
   }
 
@@ -109,11 +116,25 @@ OccTools.prototype.init = async function (options, args, callback) {
   var allArgs = Array.prototype.slice.call(arguments);
   var self = this;
 
-  await checkVersion();
-
   logBox({ padding: 10, symbol: '-' })(`Executing command for: ${appConfig.environment.details.url}(${appConfig.environment.current})`);
 
-  blockCommandsByEnvBranch(args, function (finishProcess) {
+  const sitesIds = await getSitesIds.call({
+    _occ: new OCC('admin')
+  }, options.site_id);
+
+  // Set Sites IDs
+  appConfig.sitesIds = sitesIds;
+
+  // Start Hooks
+  self.hooks = new Hooks(options);
+
+  // Load available Hooks Modules
+  await self.hooks.loadHooksModules();
+
+  // Load Hooks for INIT event
+  await self.hooks.loadHooks(self.hooks.INIT_HOOK, callback);
+
+  blockCommandsByEnvBranch(args, options, async function (finishProcess) {
     if(finishProcess) {
       return callback(false);
     }
@@ -124,6 +145,8 @@ OccTools.prototype.init = async function (options, args, callback) {
       callback(false);
       return;
     }
+
+
 
     if (options.verbose) {
       self.logger.transports.console.level = 'debug';
@@ -149,12 +172,18 @@ OccTools.prototype.init = async function (options, args, callback) {
       appConfig.credentials = appConfig.loginCredentialsApplicationKey;
     }
 
+    // Load Hooks for PRE event
+    await self.hooks.loadHooks(self.hooks.PRE_HOOK, callback);
+
     Cmdln.prototype.init.apply(this, allArgs);
   });
 };
 
-OccTools.prototype.fini = function (subcmd, error, callback) {
+OccTools.prototype.fini = async function (subcmd, error, callback) {
   const skipErrors = ['NoCommand'];
+
+  // Load Hooks for POST event
+  await this.hooks.loadHooks(this.hooks.POST_HOOK, callback);
 
   if (typeof error === 'object' && !skipErrors.includes(error.code)) {
     error.message ? winston.error(error.message) : winston.error(error);
@@ -235,5 +264,6 @@ OccTools.prototype.do_user_commands = UserCommands;
 OccTools.prototype.do_compile = Compile;
 OccTools.prototype.do_configs = Configs;
 OccTools.prototype.do_restart = Restart;
+OccTools.prototype.do_page_tags = PageTags;
 
 module.exports = OccTools;
