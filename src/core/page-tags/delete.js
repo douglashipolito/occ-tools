@@ -21,13 +21,15 @@ async function deleteTags(items, options) {
 
 async function listTags(listInstance, options) {
   try {
-    const tagsResponse = await listInstance.listTags();
+    const tagsResponses = await listInstance.listTags();
 
-    for(const response of tagsResponse) {
-      if(!response.items.length) {
-        winston.info(`No tags found for ${response.siteId}`);
-      } else {
-        await deleteTags.call(this, response.items, options);
+    for(const responses of tagsResponses) {
+      for(const response of responses) {
+        if(!response.items.length) {
+          winston.info(`No tags found for ${response.siteId} in "${response.area}" area`);
+        } else {
+          await deleteTags.call(this, response.items, { ...options, area: response.area });
+        }
       }
     }
   } catch(error) {

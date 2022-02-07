@@ -6,14 +6,18 @@ async function listTags(list) {
   try {
     const tagsResponse = await list.listTags();
 
-    tagsResponse.forEach(response => {
-      if(!response.items.length) {
-        winston.info(`No tags found for ${response.siteId}`);
-      } else {
-        winston.info(`Tags for ${response.siteId}:`)
-        winston.info(response.items);
-        winston.info('');
-      }
+    tagsResponse.forEach(responses => {
+      responses.forEach(response => {
+        winston.info(`Response for area ${response.area}`);
+
+        if(!response.items.length) {
+          winston.info(`No tags found for ${response.siteId}`);
+        } else {
+          winston.info(`Tags for ${response.siteId}:`)
+          winston.info(response.items);
+          winston.info('');
+        }
+      });
     });
   } catch(error) {
     throw new Error(error);

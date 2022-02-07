@@ -14,6 +14,7 @@ var Files = require('../files');
 var Search = require('../search');
 var Stack = require('../stack');
 var Email = require('../email');
+var PageTags = require('../page-tags');
 
 const { getSiteSetting } = require('../site-settings/get');
 
@@ -93,6 +94,20 @@ module.exports = function(deployInstructions, releaseVersion, callback) {
           } else {
             operationNotSupported(errors, operation);
             callback();
+          }
+          break;
+        case 'page-tags':
+        case 'pageTags':
+          switch(operation.operation) {
+            case 'create':
+              createPageTags(callback, errors, operation);
+              break;
+            case 'update':
+              updatePageTags(callback, errors, operation);
+              break;
+            default:
+              operationNotSupported(errors, operation);
+              callback();
           }
           break;
         // case 'search': @TODO handle the rest of search folder
@@ -303,6 +318,40 @@ function uploadFiles(callback, errors, operation) {
     callback();
   });
   files.uploadCommand(operation.id, operation.options);
+}
+
+function createPageTags(callback, errors, operation) {
+  var pageTags = new PageTags('admin');
+
+  pageTags.on('complete', function() {
+    callback();
+  });
+
+  pageTags.on('error', function(err) {
+    errors.push({ type: operation.type, id: operation.id, error: err });
+    callback();
+  });
+
+  pageTags.create({
+    file: operation.id
+  });
+}
+
+function updatePageTags(callback, errors, operation) {
+  var pageTags = new PageTags('admin');
+
+  pageTags.on('complete', function() {
+    callback();
+  });
+
+  pageTags.on('error', function(err) {
+    errors.push({ type: operation.type, id: operation.id, error: err });
+    callback();
+  });
+
+  pageTags.update({
+    file: operation.id
+  });
 }
 
 function uploadSse(callback, errors, operation) {

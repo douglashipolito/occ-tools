@@ -8,12 +8,19 @@ const jsBundle = promisify(require('../../files/js-bundle'));
 const os = require('os');
 var uploadFilesCommand = require('../../files/uploadCommand');
 
-const { getFileSetting, resolveProjectFilesPaths, getFilesPromisified, generateFilePathMapping } = require('../../files/utils');
+const { getFileSetting, generateFilePathMapping } = require('../../files/utils');
+const { getPageTagsConfigsFromFileSetting, resolveFilePath } = require('./utils');
+
+const PageTags = require('../index');
 
 class Create {
   static uploadedFiles = [];
 
   constructor(options, coreInstance) {
+    if(!coreInstance) {
+      coreInstance = new PageTags('admin');
+    }
+
     this.options = options;
     this.occ = coreInstance._occ;
     this.coreInstance = coreInstance;
@@ -30,24 +37,6 @@ class Create {
 
     if(type === 'content') {
       return scriptTag.replace('{{content}}', source).replace('{{src}}', '');
-    }
-  }
-
-  async resolveFilePath(file) {
-    try {
-      const files = await getFilesPromisified(file);
-
-      if(!files.length) {
-        throw (`File ${file} not found!`);
-      }
-
-      if(files.length > 1) {
-        throw (`\n\nMore than one file have been found matching this pattern ${file}! Only one file is allowed.\n\nFiles found:\n${files.join('\n')}`);
-      }
-
-      return files[0];
-    } catch(error) {
-      throw new Error(error);
     }
   }
 
@@ -119,15 +108,19 @@ class Create {
 
   async prepareRequest() {
     try {
-      await resolveProjectFilesPaths();
-      const { type, enabled, tagId } = this.options;
-      let resolvedFile = await this.resolveFilePath(this.options.file);
-      const fileSettings = getFileSetting(resolvedFile);
-      const order = fileSettings['page-tag-order'] || this.options.order;
+      const pageTagConfigs = await getPageTagsConfigsFromFileSetting(this.options.file);
+      let resolvedFile = await resolveFilePath(this.options.file);
+      this.options = {...this.options, ...pageTagConfigs };
+
+      if(!this.options.name) {
+        this.options.name = path.basename(resolvedFile, '.js');
+      }
+
+      const { order, type, enabled, tagId } = this.options;
       this.options.file = resolvedFile;
 
       const body = {
-        enabled: enabled
+        enabled: enabled || true
       };
 
       if(order) {

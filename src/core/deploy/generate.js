@@ -8,6 +8,7 @@ var occConfigs = require('../config');
 var github = require('../github');
 var config = require('../config');
 var Widget = require('../widget');
+var ListPageTags = require('../page-tags/api/list');
 
 const { getSiteSetting } = require('../site-settings/get');
 
@@ -138,7 +139,11 @@ function processStorefront(changes, filePath) {
     case 'files':
       var allowedFolders = ['general', 'thirdparty', 'products', 'collections'];
       if (allowedFolders.includes(filePath[1])) {
-        changes.files.add(path.join.apply(null, filePath));
+        if(filePath.includes('page-tags')) {
+          changes.pageTags.create.add(path.join.apply(null, filePath));
+        } else {
+          changes.files.add(path.join.apply(null, filePath));
+        }
       }
       break;
     default:
@@ -187,6 +192,11 @@ module.exports = function(revision, options, callback) {
     config: new Set(),
     gateway: new Set(),
     files: new Set(),
+    pageTags: {
+      create: new Set(),
+      update: new Set(),
+      delete: new Set()
+    },
     theme: false,
     sseVariable: true,
     facets: false,
@@ -335,8 +345,48 @@ module.exports = function(revision, options, callback) {
     }
   };
 
+  var checkPageTags = async function(callback) {
+    if(!_changes.pageTags.create.size) {
+      return callback();
+    }
+
+    try {
+      const changedPageTags = Array.from(_changes.pageTags.create);
+      const list = new ListPageTags({});
+      winston.info('Verifying page tags...');
+
+      const pageTagsResponse = await list.listTags(list);
+      const tagNamesObject = {};
+
+      pageTagsResponse.forEach(responses => {
+        responses.forEach(response => {
+          response.items.map(item => {
+            tagNamesObject[item.name.replace(/-site.*/, '')] = true;
+          });
+        });
+      });
+
+      const remoteTagsNamesList = Object.keys(tagNamesObject);
+
+      // Checking if we need to update
+      remoteTagsNamesList.forEach(remotetagName => {
+        const foundRemoteTag = changedPageTags.find(tagEntry => new RegExp(remotetagName).test(tagEntry));
+
+        if(foundRemoteTag) {
+          _changes.pageTags.update.add(foundRemoteTag);
+          _changes.pageTags.create.delete(foundRemoteTag);
+        }
+      });
+
+      callback();
+    } catch(error) {
+      callback(error);
+    }
+  };
+
   var buildDeployJson = function(callback) {
     winston.info('Building deploy script...');
+
     Object.keys(_changes).forEach(function(changeType) {
       switch (changeType) {
         case 'widget':
@@ -454,6 +504,26 @@ module.exports = function(revision, options, callback) {
             });
           });
           break;
+        case 'pageTags':
+          if (_changes.pageTags.create.size) {
+            _changes.pageTags.create.forEach(pageTagFile => {
+              _deployJson.push({
+                operation: 'create',
+                type: changeType,
+                id: pageTagFile
+              });
+            });
+          }
+
+          if (_changes.pageTags.update.size) {
+            _changes.pageTags.update.forEach(pageTagFile => {
+              _deployJson.push({
+                operation: 'update',
+                type: changeType,
+                id: pageTagFile
+              });
+            })
+          }
         case 'sseVariable':
           if (_changes[changeType]) {
             _deployJson.push({
@@ -499,6 +569,7 @@ module.exports = function(revision, options, callback) {
       processChanges,
       checkNotInstalledWidgets,
       checkNotInstalledAppLevels,
+      checkPageTags,
       buildDeployJson,
       storeDeployJson
     ],

@@ -38,7 +38,7 @@ This project must adhere to [this](https://github.com/olivierlacan/keep-a-change
   - The new command is `occ-tools page-tags`, these are the operations you can perform:
     - `create` - This command will create a new Page in the occ environment. The available arguments are:
       - `--file` - (Required) The JS File path. This must be available inside the /files folder
-      - `--name` - (Required) The name of the page tag. In case of multiple sites, a suffix -siteId will be added, such as "my-file-siteUS"
+      - `--name` - (Options) The name of the page tag. In case of multiple sites, a suffix -siteId will be added, such as "my-file-siteUS"
       - `--type` - (Optional) This will set the script using "src" or in the script body. Valid values: file or content. Default(file)
       - `--order` - (Optional) Sets the order of the script.
       - `--enabled` - (Optional) Defines if the page tag will be enabled by default.
