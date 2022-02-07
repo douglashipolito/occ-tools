@@ -126,13 +126,13 @@ OccTools.prototype.init = async function (options, args, callback) {
   appConfig.sitesIds = sitesIds;
 
   // Start Hooks
-  self.hooks = new Hooks(options);
+  self.hooks = new Hooks(options, callback);
 
   // Load available Hooks Modules
   await self.hooks.loadHooksModules();
 
   // Load Hooks for INIT event
-  await self.hooks.loadHooks(self.hooks.INIT_HOOK, callback);
+  await self.hooks.loadHooks(self.hooks.INIT_HOOK);
 
   blockCommandsByEnvBranch(args, options, async function (finishProcess) {
     if(finishProcess) {
@@ -173,7 +173,7 @@ OccTools.prototype.init = async function (options, args, callback) {
     }
 
     // Load Hooks for PRE event
-    await self.hooks.loadHooks(self.hooks.PRE_HOOK, callback);
+    await self.hooks.loadHooks(self.hooks.PRE_HOOK);
 
     Cmdln.prototype.init.apply(this, allArgs);
   });
@@ -183,7 +183,7 @@ OccTools.prototype.fini = async function (subcmd, error, callback) {
   const skipErrors = ['NoCommand'];
 
   // Load Hooks for POST event
-  await this.hooks.loadHooks(this.hooks.POST_HOOK, callback);
+  await this.hooks.loadHooks(this.hooks.POST_HOOK);
 
   if (typeof error === 'object' && !skipErrors.includes(error.code)) {
     error.message ? winston.error(error.message) : winston.error(error);
