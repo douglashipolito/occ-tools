@@ -1,9 +1,14 @@
 'use strict';
 const winston = require('winston');
 const Create = require('./create');
+const PageTags = require('../index');
 
 class Update extends Create {
   constructor(options, coreInstance) {
+    if(!coreInstance) {
+      coreInstance = new PageTags('admin');
+    }
+
     super(options, coreInstance);
     this.options = options;
     this.occ = coreInstance._occ;

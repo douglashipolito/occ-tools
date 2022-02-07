@@ -13,6 +13,7 @@ async function updateTags(items, options) {
 
       const updateInstance = new UpdateApi(options, this);
       winston.info(`Updating Tag ${item.name}`);
+
       await updateInstance.update();
     }
   } catch(error) {
@@ -22,13 +23,19 @@ async function updateTags(items, options) {
 
 async function listTags(listInstance, options) {
   try {
-    const tagsResponse = await listInstance.listTags();
+    const tagsResponses = await listInstance.listTags();
 
-    for(const response of tagsResponse) {
-      if(!response.items.length) {
-        winston.info(`No tags found for ${response.siteId}`);
-      } else {
-        await updateTags.call(this, response.items, { ...options, siteIds: [response.siteId] });
+    for(const responses of tagsResponses) {
+      for(const response of responses) {
+        if(!response.items.length) {
+          winston.info(`No tags found for ${response.siteId}`);
+        } else {
+          await updateTags.call(this, response.items, {
+            ...options,
+            siteIds: [response.siteId],
+            area: response.area
+          });
+        }
       }
     }
   } catch(error) {
