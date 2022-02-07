@@ -19,12 +19,13 @@ class Hooks {
   hooksModules = {};
   callbackCalledStop = false;
 
-  constructor(options) {
+  constructor(options, callback) {
     const _args = options._args;
 
     this.command = _args[0];
     this.subcommand = _args[1];
     this.options = options;
+    this.callback = callback
   }
 
   isHookValid(hookKey, hookType) {
@@ -56,15 +57,15 @@ class Hooks {
     }
   }
 
-  async loadHooks(hookType, callback) {
+  async loadHooks(hookType) {
     const currentInstance = this;
     const options = this.options;
+    const callback = this.callback;
 
     if(!hooksFilesDefinition || this.callbackCalledStop) {
       return;
     }
 
-    const commandHook = `${this.command}-${this.subcommand}-${hookType}`;
     const callbackWrapper = function (error) {
       if(error) {
         currentInstance.callbackCalledStop = true;
