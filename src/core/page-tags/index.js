@@ -2,20 +2,15 @@ const EventEmitter = require('events').EventEmitter;
 const util = require('util');
 const OCC = require('../occ');
 const Auth = require('../auth');
-const listTags = require('./list');
-const createTags = require('./create');
-const updateTags = require('./update');
-const deleteTags = require('./delete');
 const appConfig = require('../config');
 const areasMapping = require('./areas-mapping');
+const path = require('path');
 
 function callbackHandler(message, error) {
-  const self = this;
-
   if (error) {
-    self.emit('error', error);
+    this.emit('error', error);
   } else {
-    self.emit('complete', message);
+    this.emit('complete', message);
   }
 }
 
@@ -38,16 +33,29 @@ PageTags.prototype.makeRequest = async function (commandOptions, requestConfig =
 
   try {
     const responses = [];
-    const { area } = commandOptions;
-    const areaRequestPath = areasMapping[area];
+    let { area } = commandOptions;
     const api = requestConfig.api || '';
     const siteIds = commandOptions.siteIds || appConfig.sitesIds;
 
+    if(!area) {
+      if(!commandOptions.file) {
+        throw new Error(`Since the "area" was not provided. The "file" argument is necessary to determine the area.`);
+      }
+
+      const filePaths = commandOptions.file.split(path.sep);
+      const pageTagsPathIndex = filePaths.findIndex(item => item === 'page-tags');
+
+      if(pageTagsPathIndex < 0) {
+        throw new Error(`There is no way to determine the "area" since no area argument was provided and the file is not placed inside the /page-tags/[area] path.`);
+      }
+
+      area = filePaths[pageTagsPathIndex + 1];
+      commandOptions.area = area;
+    }
+
+    const areaRequestPath = areasMapping[area];
     if(!areaRequestPath) {
-      return Promise.reject({
-        error: 'Invalid Area',
-        message: 'The provided area is not valid'
-      });
+      throw new Error(`The provided area is not valid. Move the file to the correct place or provide the area argument`);
     }
 
     for(const siteId of siteIds) {
@@ -89,32 +97,33 @@ PageTags.prototype.makeRequest = async function (commandOptions, requestConfig =
 };
 
 PageTags.prototype.list = function(options) {
-  const self = this;
+  const listTags = require('./list');
   const message = 'Listing Page Tags Completed!';
 
   if(options.tagId) {
-    listTags.call(self, 'get', options, callbackHandler.bind(this, message));
+    listTags.call(this, 'get', options, callbackHandler.bind(this, message));
   } else {
-    listTags.call(self, 'list', options, callbackHandler.bind(this, message));
+    listTags.call(this, 'list', options, callbackHandler.bind(this, message));
   }
 };
 
 PageTags.prototype.create = function(options) {
-  const self = this;
+  const createTags = require('./create');
   const message = 'Create Page Tags Completed!';
-  createTags.call(self, 'create', options, callbackHandler.bind(this, message));
+  createTags.call(this, 'create', options, callbackHandler.bind(this, message));
 };
 
 PageTags.prototype.delete = function(options) {
-  const self = this;
+  const deleteTags = require('./delete');
   const message = 'Delete Page Tags Completed!';
-  deleteTags.call(self, 'delete', options, callbackHandler.bind(this, message));
+  deleteTags.call(this, 'delete', options, callbackHandler.bind(this, message));
 };
 
 PageTags.prototype.update = function(options) {
-  const self = this;
+  const updateTags = require('./update');
   const message = 'Update Page Tags Completed!';
-  updateTags.call(self, 'update', options, callbackHandler.bind(this, message));
+
+  updateTags.call(this, 'update', options, callbackHandler.bind(this, message));
 };
 
 module.exports = PageTags;

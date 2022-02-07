@@ -1,8 +1,13 @@
 'use strict';
 const winston = require('winston');
+const PageTags = require('../index');
 
 class Delete {
   constructor(options, coreInstance) {
+    if(!coreInstance) {
+      coreInstance = new PageTags('admin');
+    }
+
     this.options = options;
     this.occ = coreInstance._occ;
     this.request = coreInstance._occ.promisedRequest.bind(this.occ);

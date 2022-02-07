@@ -12,18 +12,10 @@ function PageTags() {
 
 util.inherits(PageTags, Cmdln);
 
-function areaNotProvidedError(callback) {
-  callback('Please provide the area: head, body-start or body-end');
-}
-
 PageTags.prototype.do_list = function(_subcmd, opts, args, callback) {
   const pageTags = new PageTagsCore('admin');
   const area = args[0];
   const query = opts.query;
-
-  if(!area) {
-    return areaNotProvidedError(callback);
-  }
 
   pageTags.on('complete', function(message) {
     winston.info(message);
@@ -70,16 +62,8 @@ PageTags.prototype.do_create = function(_subcmd, opts, args, callback) {
   const area = args[0];
   const { file, type, order, name, enabled, append_version } = opts;
 
-  if(!name) {
-    return callback('You must provide a tag name by using the argument --name=<tagName>');
-  }
-
   if(!file) {
     return callback('You must provide a js file path by using the argument --file=<filePath>');
-  }
-
-  if(!area) {
-    return areaNotProvidedError(callback);
   }
 
   pageTags.on('complete', function(message) {
@@ -122,7 +106,7 @@ PageTags.prototype.do_create.options = [
     helpArg: '<name>',
     type: 'string',
     default: false,
-    help: '(Required) The name of the page tag. In case of multiple sites, a suffix -siteId will be added, such as "my-file-siteUS"'
+    help: '(Optional) The name of the page tag. In case of multiple sites, a suffix -siteId will be added, such as "my-file-siteUS". Default value is the filename'
   },
   {
     names: ['type', 't'],
@@ -159,10 +143,6 @@ PageTags.prototype.do_delete = function(_subcmd, opts, args, callback) {
   const area = args[0];
   const query = opts.query;
   const tagId = opts.tagId;
-
-  if(!area) {
-    return areaNotProvidedError(callback);
-  }
 
   if(!query && tagId) {
     return callback('You must provide the --tagId=<id> or --query=<SCIM Query> for the delete');
@@ -215,10 +195,6 @@ PageTags.prototype.do_update = function(_subcmd, opts, args, callback) {
 
   if(!file) {
     return callback('You must provide a js file path by using the argument --file=<filePath>');
-  }
-
-  if(!area) {
-    return areaNotProvidedError(callback);
   }
 
   if(!query && tagId) {
