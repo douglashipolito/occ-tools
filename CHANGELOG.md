@@ -2,6 +2,10 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [3.0.1] - 2022-02-14]
+
+### Fixed
+- Minor fix in the Sites Fetch, postponing the request to retrieve the Sites.
 
 ## [3.0.0] - 2022-02-04]
 
