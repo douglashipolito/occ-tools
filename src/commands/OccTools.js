@@ -118,65 +118,69 @@ OccTools.prototype.init = async function (options, args, callback) {
 
   logBox({ padding: 10, symbol: '-' })(`Executing command for: ${appConfig.environment.details.url}(${appConfig.environment.current})`);
 
-  const sitesIds = await getSitesIds.call({
-    _occ: new OCC('admin')
-  }, options.site_id);
+  try {
+    // Set Sites IDs
+    appConfig.sitesIds = [];
 
-  // Set Sites IDs
-  appConfig.sitesIds = sitesIds;
+    // Start Hooks
+    self.hooks = new Hooks(options, callback);
 
-  // Start Hooks
-  self.hooks = new Hooks(options, callback);
+    // Load available Hooks Modules
+    await self.hooks.loadHooksModules();
 
-  // Load available Hooks Modules
-  await self.hooks.loadHooksModules();
+    // Load Hooks for INIT event
+    await self.hooks.loadHooks(self.hooks.INIT_HOOK);
 
-  // Load Hooks for INIT event
-  await self.hooks.loadHooks(self.hooks.INIT_HOOK);
-
-  blockCommandsByEnvBranch(args, options, async function (finishProcess) {
-    if(finishProcess) {
-      return callback(false);
-    }
-
-    if (options.version) {
-      var packageJson = require('../../package.json');
-      winston.info(packageJson.version);
-      callback(false);
-      return;
-    }
-
-
-
-    if (options.verbose) {
-      self.logger.transports.console.level = 'debug';
-    }
-
-    if (options.totp_code) {
-      winston.info('Forcing MFA LOGIN using the following TOTP CODE: ' + options.totp_code);
-      appConfig.useApplicationKey = false;
-      appConfig.useMFALogin = true;
-      appConfig.forcedTotpCode = true;
-      appConfig.credentials = appConfig.loginCredentialsMFA;
-      appConfig.credentials.totp_code = options.totp_code;
-    }
-
-    if (options.use_app_key && !options.totp_code) {
-      if(!appConfig.environment.details.applicationKey) {
-        winston.error('No application key provided, run: occ-tools configs set-env-credentials');
-        return callback();
+    blockCommandsByEnvBranch(args, options, async function (finishProcess) {
+      if(finishProcess) {
+        return callback(false);
       }
-      winston.info('Forcing login with application key...');
-      appConfig.useApplicationKey = true;
-      appConfig.useMFALogin = false;
-      appConfig.credentials = appConfig.loginCredentialsApplicationKey;
-    }
 
-    // Load Hooks for PRE event
-    await self.hooks.loadHooks(self.hooks.PRE_HOOK);
+      if (options.version) {
+        var packageJson = require('../../package.json');
+        winston.info(packageJson.version);
+        callback(false);
+        return;
+      }
 
-    Cmdln.prototype.init.apply(this, allArgs);
-  });
+      if (options.verbose) {
+        self.logger.transports.console.level = 'debug';
+      }
+
+      if (options.totp_code) {
+        winston.info('Forcing MFA LOGIN using the following TOTP CODE: ' + options.totp_code);
+        appConfig.useApplicationKey = false;
+        appConfig.useMFALogin = true;
+        appConfig.forcedTotpCode = true;
+        appConfig.credentials = appConfig.loginCredentialsMFA;
+        appConfig.credentials.totp_code = options.totp_code;
+      }
+
+      if (options.use_app_key && !options.totp_code) {
+        if(!appConfig.environment.details.applicationKey) {
+          winston.error('No application key provided, run: occ-tools configs set-env-credentials');
+          return callback();
+        }
+        winston.info('Forcing login with application key...');
+        appConfig.useApplicationKey = true;
+        appConfig.useMFALogin = false;
+        appConfig.credentials = appConfig.loginCredentialsApplicationKey;
+      }
+
+      const sitesIds = await getSitesIds.call({
+        _occ: new OCC('admin')
+      }, options.site_id);
+
+      appConfig.sitesIds = sitesIds;
+
+      // Load Hooks for PRE event
+      await self.hooks.loadHooks(self.hooks.PRE_HOOK);
+
+      Cmdln.prototype.init.apply(this, allArgs);
+    });
+  } catch(error) {
+    callback(error.message);
+  }
 };
 
 OccTools.prototype.fini = async function (subcmd, error, callback) {
