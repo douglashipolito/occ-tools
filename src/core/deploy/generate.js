@@ -416,7 +416,10 @@ module.exports = function(revision, options, callback) {
             _deployJson.push({
               operation: 'upload',
               type: changeType,
-              id: Array.from(_changes.widget.upload)
+              id: Array.from(_changes.widget.upload),
+              options: {
+                autoRestore: true
+              }
             });
           }
           break;
