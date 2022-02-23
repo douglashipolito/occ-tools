@@ -1,8 +1,5 @@
 var util = require('util');
 var fs = require('fs-extra');
-var glob = require('glob');
-var path = require('path');
-
 var Cmdln = require('cmdln').Cmdln;
 var winston = require('winston');
 
@@ -17,9 +14,6 @@ var Files = require('../core/files');
 var ServerSideExtension = require('../core/server-side-extension');
 var ResponseFilter = require('../core/response-filter');
 var Type = require('../core/type');
-
-var config = require('../core/config');
-const { options } = require('less');
 
 function Upload() {
   Cmdln.call(this, {
