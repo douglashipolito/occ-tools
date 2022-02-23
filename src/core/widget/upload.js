@@ -808,6 +808,7 @@ module.exports = function(widgetId, options, callback) {
   options = options || {};
   options.times = options.times || 1;
   options.minify = options.minify || false;
+  options.backup = typeof options.backup !== 'undefined' ? options.backup : true;
 
   var fetchWidgetsInfo;
   if (!options.info){
