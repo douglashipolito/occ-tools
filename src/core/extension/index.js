@@ -50,6 +50,7 @@ Extension.prototype.upgrade = function(name, options) {
  */
 Extension.prototype.restore = function(name, file, options) {
   var self = this;
+
   _restore.call(this, name, file, options, function(err) {
     err ? self.emit('error', err) : self.emit('complete', 'Extension restore process completed.');
   });

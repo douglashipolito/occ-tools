@@ -8,6 +8,7 @@ var fs = require('fs-extra');
 var util = require('util');
 var isEmpty = require('lodash/isEmpty');
 var pick = require('lodash/pick');
+var uploadExtension = require('../extension/upload');
 
 /**
  * Get the widget.json configuration
@@ -38,6 +39,8 @@ var getWidgetConfig = function (widgetType, backup, occ, callback) {
  * @param {Function} callback The callback function
  */
 var getWidgetInstances = function (widgetType, backup, occ, config, callback) {
+  var self = this;
+
   return occ.request({
     api: '/widgetDescriptors/instances',
     method: 'get',
@@ -55,7 +58,19 @@ var getWidgetInstances = function (widgetType, backup, occ, config, callback) {
       existingInstances = widgetDescriptor.instances;
     }
 
-    callback(null, config, existingInstances);
+    if(!widgetDescriptor) {
+      winston.warn(`The Extension ${widgetType} has been deleted, running upgrade to upload it back...`);
+
+      uploadExtension.call(self, widgetType, { type: 'widget' }, function (error) {
+        if(error) {
+          return callback(error);
+        }
+
+        getWidgetInstances.call(self, widgetType, backup, occ, config, callback);
+      });
+    } else {
+      callback(null, config, existingInstances);
+    }
   });
 }
 
@@ -74,7 +89,8 @@ var createInstances = function (widgetType, backup, occ, config, existingInstanc
     winston.info('Setting up instances for %s', widgetType);
 
     var newInstances = {};
-    async.forEach(backup.widget.instances, function (instance, cb) {
+
+    async.forEachSeries(backup.widget.instances, function (instance, cb) {
       var foundInstance = existingInstances.find(function (existingInstance) {
         return existingInstance.displayName === instance.displayName;
       });
@@ -158,7 +174,7 @@ var placeInstances = function (widgetType, backup, occ, config, instances, callb
   if (!config.global && instances && backup.structures && Object.keys(backup.structures).length) {
     winston.info('Restoring widget positions on pages');
     var structureIds = Object.keys(backup.structures);
-    async.forEach(structureIds, function (structureId, cb) {
+    async.forEachSeries(structureIds, function (structureId, cb) {
       var structure = backup.structures[structureId];
 
       // replace the old widget IDs by the newly generated ones
@@ -682,17 +698,19 @@ function getWidgetLayoutTemplate(widgetType, backup, _occ, instances, callback) 
  * @param {Function} callback The callback function
  */
 module.exports = function (widgetType, backup, occ, callback) {
+  var self = this;
+
   async.waterfall([
-    async.apply(getWidgetConfig, widgetType, backup, occ),
-    async.apply(getWidgetInstances, widgetType, backup, occ),
-    async.apply(createInstances, widgetType, backup, occ),
-    async.apply(placeInstances, widgetType, backup, occ),
-    async.apply(getGlobalInstance, widgetType, backup, occ),
-    async.apply(restoreSiteAssociations, widgetType, backup, occ),
-    async.apply(restoreLocales, widgetType, backup, occ),
-    async.apply(getWidgetConfigurations, widgetType, backup, occ),
-    async.apply(restoreConfiguration, widgetType, backup, occ),
-    async.apply(getWidgetLayoutTemplate, widgetType, backup, occ),
-    async.apply(restoreElementizedWidgetsLayout, widgetType, backup, occ)
+    async.apply(getWidgetConfig.bind(self), widgetType, backup, occ),
+    async.apply(getWidgetInstances.bind(self), widgetType, backup, occ),
+    async.apply(createInstances.bind(self), widgetType, backup, occ),
+    async.apply(placeInstances.bind(self), widgetType, backup, occ),
+    async.apply(getGlobalInstance.bind(self), widgetType, backup, occ),
+    async.apply(restoreSiteAssociations.bind(self), widgetType, backup, occ),
+    async.apply(restoreLocales.bind(self), widgetType, backup, occ),
+    async.apply(getWidgetConfigurations.bind(self), widgetType, backup, occ),
+    async.apply(restoreConfiguration.bind(self), widgetType, backup, occ),
+    async.apply(getWidgetLayoutTemplate.bind(self), widgetType, backup, occ),
+    async.apply(restoreElementizedWidgetsLayout.bind(self), widgetType, backup, occ)
   ], callback);
 };

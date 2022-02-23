@@ -19,6 +19,7 @@ var ResponseFilter = require('../core/response-filter');
 var Type = require('../core/type');
 
 var config = require('../core/config');
+const { options } = require('less');
 
 function Upload() {
   Cmdln.call(this, {
@@ -34,7 +35,9 @@ Upload.prototype.do_widget = function(subcmd, opts, args, callback) {
     files: opts.files && opts.files.split(',') || undefined,
     times: opts.times || 1,
     minify: opts.minify || false,
-    locales: opts.locales
+    locales: opts.locales,
+    backup: !opts.no_backup,
+    autoRestore: opts.auto_restore
   };
 
   var widget = new Widget();
@@ -81,6 +84,18 @@ Upload.prototype.do_widget.options = [
     helpArg: '[locales]',
     type: 'string',
     help: '(Optional) The locales to upload separated by commas. The path needs to be relative to the widget resources folder. (e.g: en,fr,fr-CA).'
+  },
+  {
+    names: ['no-backup', 'b'],
+    type: 'bool',
+    default: false,
+    help: '(Optional) If used, no backup will be created. (default: false)'
+  },
+  {
+    names: ['auto-restore', 'a'],
+    type: 'bool',
+    default: false,
+    help: '(Optional) Auto restores the widget if something goes wrong. (default: false)'
   }
 ];
 

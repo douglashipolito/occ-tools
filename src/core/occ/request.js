@@ -156,6 +156,8 @@ function doRequest(config, token, fileToken, callback) {
   });
 }
 
+let tokenIsValid = false;
+
 /**
  * Will try do to a request to OCC. If not succeded, will try n times until succeds or reach max attempts.
  * @param  {Object}   config      The request config object.
@@ -172,11 +174,47 @@ function tryToRequest(config, token, fileToken, maxAttempts, callback) {
       attempts++;
       winston.debug(err);
       if (err) {
+        tokenIsValid = false;
         return callback(err);
       }
 
+      tokenIsValid = true;
       token = newToken;
       return callback();
+    });
+  };
+
+  var proceedWithRequest = function (err, callback) {
+    if(err) {
+      return callback(err);
+    }
+
+    doRequest(config, token, fileToken, function(err, body) {
+      var responseStatus = body && body.status ? parseInt(body.status) : null;
+
+      if (err) {
+        var occStatusCode = Object.prototype.toString.call(err) === '[object Object]' && parseInt(err.status);
+        attempts++;
+
+        if(occStatusCode === 401) {
+          tokenIsValid = false;
+          return loginAttempt(callback);
+        }
+
+        if(occStatusCode === 403 ) {
+          tokenIsValid = false;
+          return callback(err.message + '\n\n Try to use a different Auth Method such as TOTP CODE or APP KEY');
+        }
+
+        tokenIsValid = false;
+        return callback(err);
+      } else if (responseStatus === 401) {
+        return loginAttempt(callback);
+      } else {
+        tokenIsValid = true;
+        attempts = maxAttempts;
+        return callback(null, body);
+      }
     });
   };
 
@@ -185,32 +223,50 @@ function tryToRequest(config, token, fileToken, maxAttempts, callback) {
       return attempts < maxAttempts;
     },
     function(callback) {
-      doRequest(config, token, fileToken, function(err, body) {
-        var responseStatus = body && body.status ? parseInt(body.status) : null;
-
-        if (err) {
-          var occStatusCode = Object.prototype.toString.call(err) === '[object Object]' && parseInt(err.status);
-          attempts++;
-
-          if(occStatusCode === 401) {
-            return loginAttempt(callback);
-          }
-
-          if(occStatusCode === 403 ) {
-            return callback(err.message + '\n\n Try to use a different Auth Method such as TOTP CODE or APP KEY');
-          }
-
-          return callback(err);
-        } else if (responseStatus === 401) {
-          return loginAttempt(callback);
-        } else {
-          attempts = maxAttempts;
-          return callback(null, body);
-        }
-      });
+      if(tokenIsValid) {
+        isPublishRunning.call(self, config, token, fileToken, proceedWithRequest, callback);
+      } else {
+        proceedWithRequest(null, callback);
+      }
     },
     callback
   );
+}
+
+const PUBLISH_CHECK_DELAY = 5000;
+const MAX_ATTEMPTS_PUBLISH_CHECK = 40; // wait around 3.3min
+let PUBLISH_CHECK_ATTEMPTS = 0;
+
+function isPublishRunning(config, token, fileToken, next, callback) {
+  const notAffectByPublishMethods = ['get'];
+  const method = config.method.toLowerCase();
+
+  if(PUBLISH_CHECK_ATTEMPTS >= MAX_ATTEMPTS_PUBLISH_CHECK) {
+    return callback('occ-tools has reached the max attempts while waiting for the publish process...');
+  }
+
+  if(notAffectByPublishMethods.includes(method)) {
+    return next(null, callback);
+  }
+
+  const publishStatusConfig = mountConfig(this._endpoint, 'publish?lastPublished=true');
+
+  doRequest(publishStatusConfig, token, fileToken, (err, body) => {
+    if(err) {
+      return callback(err);
+    }
+
+    if(!body.publishRunning) {
+      return next(null, callback);
+    }
+
+    winston.info('There is a publish in progress, waiting for this process to be finished...');
+
+    setTimeout(() => {
+      PUBLISH_CHECK_ATTEMPTS++;
+      isPublishRunning.apply(this, arguments);
+    }, PUBLISH_CHECK_DELAY);
+  });
 }
 
 module.exports = function(rawOpts, callback) {
