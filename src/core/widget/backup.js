@@ -174,8 +174,8 @@ var getWidgetsLocales = function (widgetType, occ, widgetInformation, callback) 
     var availableLocales = response && response.items;
     var locales = {};
 
-    winston.info('Success requesting available locales. Found:');
-    winston.info(JSON.stringify(availableLocales, null, 2));
+    winston.info('Success requesting available OCC locales');
+    winston.debug(JSON.stringify(availableLocales, null, 2));
 
     async.forEach(
       widgetInformation.widgetIds,
