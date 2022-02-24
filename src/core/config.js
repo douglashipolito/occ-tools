@@ -182,7 +182,8 @@ var _configDescriptor = {
     transpiled: path.join(absoluteStorefrontDir, '.occ-transpiled'),
     occComponents: path.join(absoluteStorefrontDir, '.occ-components'),
     databaseDir: databaseDir,
-    assetFilesPath: assetFilesPath
+    assetFilesPath: assetFilesPath,
+    widgetBackupFolder: path.join(tempRootFolder, 'backups', 'widgets')
   },
   theme: {
     name: configsData.projects.current.theme.name,

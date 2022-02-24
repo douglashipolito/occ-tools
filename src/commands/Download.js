@@ -16,6 +16,7 @@ var AppLevel = require('../core/app-level');
 var Element = require('../core/element');
 var TextSnippet = require('../core/text-snippet');
 var Type = require('../core/type');
+var config = require('../core/config');
 
 var helpText = 'Download a %s from OCC.\n\n' +
 'Usage:\n' +
@@ -94,7 +95,7 @@ Download.prototype.do_widget_backup.options = [
     names: ['dest', 'd'],
     helpArg: '[dest]',
     type: 'string',
-    default: os.tmpdir(),
+    default: config.dir.widgetBackupFolder,
     help: '(Optional) The destination directory that widget backup will downloaded.'
   },
   {

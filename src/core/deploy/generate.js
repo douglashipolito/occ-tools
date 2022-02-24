@@ -21,7 +21,12 @@ function skipFile(folder, file) {
 
 function processCustomWidget(changes, filePath) {
   if (filePath.length > 1) {
-    var forcedUpgradeWidgets = ['oeCheckoutAddressBook', 'oeHeroBanner', 'oeFaqSection'];
+    var forcedUpgradeWidgets = [
+      'oeCheckoutAddressBook',
+      'oeHeroBanner',
+      'oeFaqSection',
+      'oeVideoPromoBannerWidget'
+    ];
 
     if(forcedUpgradeWidgets.includes(filePath[0])) {
       changes.widget.upgrade.add(filePath[0]);
@@ -396,7 +401,8 @@ module.exports = function(revision, options, callback) {
               type: 'extension',
               id: Array.from(_changes.widget.upgrade),
               options: {
-                type: changeType
+                type: changeType,
+                autoRestore: true
               }
             });
           }
@@ -410,7 +416,10 @@ module.exports = function(revision, options, callback) {
             _deployJson.push({
               operation: 'upload',
               type: changeType,
-              id: Array.from(_changes.widget.upload)
+              id: Array.from(_changes.widget.upload),
+              options: {
+                autoRestore: true
+              }
             });
           }
           break;

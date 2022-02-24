@@ -2,6 +2,28 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [3.1.0] - 2022-02-23]
+
+### Fixed
+- Issue in the upgrade command, it was not placing the widgets in the page back if the widget had many instances. Now it will proper restore the instances.
+
+### Added
+- Extra validation before running any `POST`, `PUT`, `DELETE`, `PATCH` request, occ-tools will now verify if there is any publish running before trying to make the request. If some request is running, occ-tools will wait up to 3.3 minutes and if it takes more than that, occ-tools will timeout assuming we had some problem with publish. This will prevent the problems where the upgrade command ran and some publish action is started in the middle of process and occ-tools throws an error.
+- Auto-backup for the Upload Widget command. It will now create a backup containing all the widget information before running the actual upload, this is useful in case you need to restore the widget for some reason. You can disable this auto-backup if you pass the option `--no-backup`
+- Auto-restore for the Upgrade Widget command. It will auto restore the widget if something went wrong while running the `occ-tools upgrade widget` command. 
+  - You need to pass the option `--auto-restore` if you want this feature enabled. It's disabled by default
+  - The process is the following:
+    - The command failed at some point
+    - The valid backup will be used and passed to the restore command
+    - The restore command will be ran using the backup file.
+- Auto-restore for the Upload Widget command. It will auto restore the widget if something went wrong while running the `occ-tools upload widget` command. 
+  - You need to pass the option `--auto-restore` if you want this feature enabled. It's disabled by default
+  - The process is the following:
+    - The command failed at some point
+    - The valid backup will be used and passed to the restore command
+    - The restore command will be ran using the backup file.
+- Extra options for the automated deployment. When running the deployment in the automated way, meaning `generate deploy` and `deploy run`, occ-tools will always set the options `--auto-restore` for upgrade/upload widget commands.
+
 ## [3.0.1] - 2022-02-14]
 
 ### Fixed
