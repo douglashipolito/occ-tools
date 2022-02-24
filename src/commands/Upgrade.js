@@ -14,8 +14,12 @@ function Upgrade() {
 util.inherits(Upgrade, Cmdln);
 
 Upgrade.prototype.do_widget = function(subcmd, opts, args, callback) {
-
   var extension = new Extension();
+  var settings = {
+    datetime: opts.withDatetime,
+    type: 'widget',
+    autoRestore: opts.auto_restore,
+  };
 
   extension.on('complete', function(message) {
     winston.info(message);
@@ -26,10 +30,7 @@ Upgrade.prototype.do_widget = function(subcmd, opts, args, callback) {
     return callback(error);
   });
 
-  extension.upgrade(args[0], {
-    'datetime': opts.withDatetime,
-    'type': 'widget'
-  });
+  extension.upgrade(args[0], settings);
 };
 
 Upgrade.prototype.do_widget.help = (
@@ -46,6 +47,12 @@ Upgrade.prototype.do_widget.options = [
     type: 'bool',
     default: false,
     help: '(Optional) If set to true, the will include the datetime, not only the date (default: false).'
+  },
+  {
+    names: ['auto-restore', 'a'],
+    type: 'bool',
+    default: false,
+    help: '(Optional) Auto restores the widget if something goes wrong. (default: false)'
   }
 ];
 

@@ -8,7 +8,7 @@ var restoreAppLevel = require('../app-level/restore');
 
 /**
  * Restore a extension from a file
- * 
+ *
  * @param {String} extensionName the extension name
  * @param {Object} opts the command options
  * @param {Function} callback the callback function
@@ -18,7 +18,7 @@ module.exports = function (extensionName, file, opts, callback) {
 
   // the extension type, can be (app-level, config, gateway or widget)
   var extensionType = opts.type;
-  
+
   async.waterfall([
     // read the backup file
     function (callback) {
@@ -32,11 +32,11 @@ module.exports = function (extensionName, file, opts, callback) {
     function (backup, callback) {
       winston.info('Restoring backup file...');
       if (extensionType === 'widget') {
-        restoreWidget(extensionName, backup, self._occ, callback);
+        restoreWidget.call(self, extensionName, backup, self._occ, callback);
       } else if (extensionType === 'config' || extensionType === 'gateway') {
-        restoreSettings(extensionName, extensionType, backup, self._occ, callback);
+        restoreSettings.call(self, extensionName, extensionType, backup, self._occ, callback);
       } else if (extensionType === 'app-level') {
-        restoreAppLevel(extensionName, backup, self._occ, callback);
+        restoreAppLevel.call(self, extensionName, backup, self._occ, callback);
       } else {
         callback();
       }

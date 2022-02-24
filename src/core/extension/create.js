@@ -4,13 +4,13 @@ var winston = require('winston');
 
 /**
  * Creates a new application extension
- * 
+ *
  * @param {string} name The extension name
  * @param {request} occ The OCC requester
- * @param {function} callback The callback function, 
+ * @param {function} callback The callback function,
  * will return extensionId as parameter
  */
-module.exports = function (name, occ, callback) {
+function newApplication({ name, occ } , callback) {
   var options = {
     'api': '/applicationIds',
     'method': 'post',
@@ -24,4 +24,19 @@ module.exports = function (name, occ, callback) {
     winston.info('New extension ID geneated %s', response.repositoryId);
     callback(null, response.repositoryId);
   });
+}
+
+function createExtensionIfNecessary({ application, extensionName }, callback) {
+  var self = this;
+
+  if (!application) {
+    newApplication({ extensionName, occ: self._occ }, callback);
+  } else {
+    callback(null, application.repositoryId);
+  }
+};
+
+module.exports = {
+  newApplication,
+  createExtensionIfNecessary
 };

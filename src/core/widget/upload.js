@@ -7,12 +7,14 @@ var util = require('util');
 var winston = require('winston');
 var webpack = require('webpack');
 var async = require('async');
-var UglifyJS = require('uglify-js');
 var _configs = require('../config');
 var execSync = require('child_process').execSync;
 
 var widgetsInfo = require('./info');
 var _uploadFile = require('../files/upload');
+var _backup = require('./backup');
+var { autoRestoreWidget } = require('./utils');
+
 var Bundler = require('../bundler');
 var widgetBasePath = null;
 
@@ -768,12 +770,45 @@ function uploadWidgets(widgetsInfo, options, callback) {
   }, callback);
 }
 
+var backupFileName;
+function makeWidgetBackup(options, widgetId, widgetInfo, callback) {
+  var self = this;
+
+  if(!options.backup) {
+    return callback(null, widgetInfo);
+  }
+
+  winston.info(`Making a backup of the widget "${widgetId}"... `);
+
+  backupFileName =  util.format(
+    '%s-%s-%d.json',
+    'widget',
+    widgetId,
+    new Date().getTime()
+  );
+
+  var backupConfigs = {
+    file: backupFileName,
+    dest: _configs.dir.widgetBackupFolder
+  };
+
+  var backupHandler = function(error) {
+    if(error) {
+      return callback(error);
+    }
+
+    callback(null, widgetInfo);
+  };
+
+  _backup.call(self, widgetId, self._occ, backupHandler, backupConfigs);
+}
+
 module.exports = function(widgetId, options, callback) {
   var self = this;
   options = options || {};
   options.times = options.times || 1;
   options.minify = options.minify || false;
-
+  options.backup = typeof options.backup !== 'undefined' ? options.backup : true;
 
   var fetchWidgetsInfo;
   if (!options.info){
@@ -792,6 +827,7 @@ module.exports = function(widgetId, options, callback) {
 
   async.waterfall([
     fetchWidgetsInfo.bind(self),
+    makeWidgetBackup.bind(self, options, widgetId),
     function(widgetsInfo, callback) {
 
       if (widgetsInfo.length === 0) {
@@ -801,5 +837,7 @@ module.exports = function(widgetId, options, callback) {
 
       uploadWidgets.call(self, widgetsInfo, options, callback);
     }
-  ], callback);
+  ], function (error) {
+    autoRestoreWidget.call(self, error, widgetId, backupFileName, options, callback);
+  });
 };
