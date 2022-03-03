@@ -2,6 +2,11 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [3.1.2] - 2022-03-03]
+
+### Fixed
+- Issue in the page tags related to the site ids
+
 ## [3.1.1] - 2022-03-03]
 
 ### Fixed
