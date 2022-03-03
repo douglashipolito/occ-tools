@@ -31,9 +31,7 @@ var Deploy = require('./Deploy.js');
 var Instance = require('./Instance.js');
 var LocalServer = require('./LocalServer.js');
 var Environment = require('../core/env');
-var getSitesIds = require('../core/sites/get');
 var PageTags = require('./PageTags');
-var OCC = require('../core/occ');
 var Hooks = require('../core/hooks');
 
 function OccTools(logger) {
@@ -119,9 +117,6 @@ OccTools.prototype.init = async function (options, args, callback) {
   logBox({ padding: 10, symbol: '-' })(`Executing command for: ${appConfig.environment.details.url}(${appConfig.environment.current})`);
 
   try {
-    // Set Sites IDs
-    appConfig.sitesIds = [];
-
     // Start Hooks
     self.hooks = new Hooks(options, callback);
 
@@ -166,12 +161,6 @@ OccTools.prototype.init = async function (options, args, callback) {
         appConfig.useMFALogin = false;
         appConfig.credentials = appConfig.loginCredentialsApplicationKey;
       }
-
-      const sitesIds = await getSitesIds.call({
-        _occ: new OCC('admin')
-      }, options.site_id);
-
-      appConfig.sitesIds = sitesIds;
 
       // Load Hooks for PRE event
       await self.hooks.loadHooks(self.hooks.PRE_HOOK);
