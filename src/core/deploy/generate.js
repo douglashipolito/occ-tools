@@ -23,8 +23,6 @@ function processCustomWidget(changes, filePath) {
   if (filePath.length > 1) {
     var forcedUpgradeWidgets = [
       'oeCheckoutAddressBook',
-      'oeHeroBanner',
-      'oeFaqSection',
       'oeVideoPromoBannerWidget'
     ];
 

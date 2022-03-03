@@ -6,7 +6,6 @@ var os = require('os');
 var fs = require('fs-extra');
 var async = require('async');
 var uploadFile = require('../files/upload');
-// var config = require('../config');
 
 /**
  * Upload all widget js files.

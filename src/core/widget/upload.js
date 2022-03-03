@@ -32,6 +32,7 @@ var ALL_FILES = [
 ];
 
 module.exports = function (widgetId, options, callback) {
+  var self = this;
   var backupFileName;
 
   options = options || {};
@@ -48,7 +49,7 @@ module.exports = function (widgetId, options, callback) {
   function fetchWidgetsInfo(options, callback) {
     // If info is not present in options, request info
     if (!options.info) {
-      getWidgetsInfo.call(this, widgetId, function (err, widgetsInfo) {
+      getWidgetsInfo.call(self, widgetId, function (err, widgetsInfo) {
         callback(err, options, widgetsInfo);
       });
       return;
@@ -125,8 +126,6 @@ module.exports = function (widgetId, options, callback) {
    * @param {Function} callback function to be called when finished
    */
   function createBackupIfNeeded(options, widgetInfo, callback) {
-    var self = this;
-
     if(!options.backup) {
       return callback(null, options, widgetInfo);
     }
@@ -164,10 +163,9 @@ module.exports = function (widgetId, options, callback) {
    * @param {Function} callback function to be called when finished
    */
   function uploadWidgetFiles(widgetInfo, options, callback) {
-    var self = this;
     var files = Array.isArray(options.files) ? options.files : ALL_FILES;
 
-    async.forEach(files, function (file, cbFile) {
+    async.forEachSeries(files, function (file, cbFile) {
       try {
         if (file.endsWith('.js')) {
           var jsFile = {
@@ -181,7 +179,7 @@ module.exports = function (widgetId, options, callback) {
           case FILE_JS:
             // By pass oracle js
             if (widgetInfo.folder === 'oracle') return cbFile();
-            uploadAllJS.call(self, widgetInfo, options, callback);
+            uploadAllJS.call(self, widgetInfo, options, cbFile);
             break;
           case FILE_LESS:
             uploadLess.call(self, widgetInfo, cbFile);
@@ -193,12 +191,12 @@ module.exports = function (widgetId, options, callback) {
             uploadTemplate.call(self, widgetInfo, cbFile);
             break;
           default:
-            winston.warn('Unknown file: %s', file);
+            winston.warn('Cannot process unknown file: %s', file);
             cbFile();
         }
       } catch(e) {
         cbFile(
-          util.format('Unable to upload widget %s file: %s', file, e.message)
+          util.format('Unable to upload widget file (%s): %s', file, e.message)
         );
       }
     }, callback);
@@ -212,7 +210,6 @@ module.exports = function (widgetId, options, callback) {
    * @param {Function} callback function to be called when finished
    */
   function uploadWidgets(options, widgetsInfo, callback) {
-    var self = this;
     var widgetUploadCurrentCount = 0;
     var widgetsCount = widgetsInfo.length;
 
@@ -245,18 +242,18 @@ module.exports = function (widgetId, options, callback) {
   /**
    * Handle command upload command finish event
    * If some error occurs, run autoRestore if needed
-   * @param {*} error 
+   * @param {Error} error 
    */
   function onFinish(error) {
-    autoRestoreWidget.call(this, error, widgetId, backupFileName, options, callback);
+    autoRestoreWidget.call(self, error, widgetId, backupFileName, options, callback);
   }
 
   async.waterfall([
     async.constant(options),
-    fetchWidgetsInfo.bind(this),
-    createBackupIfNeeded.bind(this),
-    validateWidgetsInfo.bind(this),
-    transpileWidgetsIfNeeded.bind(this),
-    uploadWidgets.bind(this),
-  ], onFinish.bind(this));
+    fetchWidgetsInfo,
+    createBackupIfNeeded,
+    validateWidgetsInfo,
+    transpileWidgetsIfNeeded,
+    uploadWidgets,
+  ], onFinish);
 };

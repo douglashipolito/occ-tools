@@ -4,6 +4,7 @@ var util = require('util');
 var fs = require('fs-extra');
 var async = require('async');
 var config = require('../config');
+const { getErrorFromRequest } = require('./utils');
 
 /**
  * Memoized request for OCC locales
@@ -15,7 +16,7 @@ var _fetchAvailableLocales = async.memoize(function (callback) {
     api: '/merchant/contentLocales?includeAllSites=true',
     method: 'get'
   }, function (err, response) {
-    var error = err || (response && response.errorCode ? response.message : null);
+    var error = getErrorFromRequest(err, response);
     var availableLocales = response && response.items;
 
     callback(error, availableLocales);
@@ -73,7 +74,7 @@ function fetchInstanceLocale(instanceId, localeName, callback) {
       instanceId,
       JSON.stringify(response, null, 2)
     );
-    
+
     if (error) {
       winston.debug(
         '[locales] Error fetching locale information: %s',
@@ -81,8 +82,8 @@ function fetchInstanceLocale(instanceId, localeName, callback) {
       );
     }
 
+    var error = getErrorFromRequest(err, response);
     var localeData = response && response.localeData || false;
-    var error = err || (response && response.errorCode ? response.message : null);
 
     callback(error, localeData);
   });
@@ -102,13 +103,39 @@ function updateInstanceLocale(instanceId, localeName, localeData, callback) {
   occ.request({
     api: util.format('widgets/%s/locale/%s', instanceId, localeName),
     method: 'put',
-    headers: {
-      'x-ccasset-language': localeName
-    },
+    headers: { 'x-ccasset-language': localeName },
     body: localeData
   }, function(err, response) {
-    var error = err || (response && response.errorCode ? response.message : null);
+    var error = getErrorFromRequest(err, response);
     return callback(error, response);
+  });
+}
+
+/**
+ * Updates widget base locale data
+ *
+ * @param {String} widgetId id of the widget
+ * @param {String} localeName locale ISO code
+ * @param {Object} localeData locale payload
+ * @param {Function} callback function to be called when finished
+ */
+function uploadWidgetDescriptorLocale(widgetId, localeName, localeData, callback) {
+  var occ = this._occ;
+
+  occ.request({
+    api: util.format('widgetDescriptors/%s/locale/%s', widgetId, localeName),
+    method: 'put',
+    // we cannot use this option because OCC will
+    // automatically include a selector on the LESS
+    // of already instatiated widgets
+    // qs: {
+    //   updateInstances: true
+    // },
+    headers: { 'x-ccasset-language': localeName },
+    body: { localeData: localeData }
+  }, function(err, response) {
+    var error = getErrorFromRequest(err, response);
+    callback(error, response);
   });
 }
 
@@ -123,59 +150,113 @@ function uploadLocale(widgetInfo, options, callback) {
   var self = this;
   var localeNames;
 
-  if (!options.locales) {
-    var widgetFolder = path.join(config.dir.project_root, 'widgets', widgetInfo.folder, widgetInfo.item.widgetType);
-    var localesFolder = path.join(widgetFolder, 'locales');
+  // Widget data
+  var widgetName = widgetInfo.item.widgetType;
+  var widgetId = widgetInfo.item.id;
+  var instances = widgetInfo.item.instances;
 
+  // Get widget locales content folder
+  var widgetFolder = path.join(config.dir.project_root, 'widgets', widgetInfo.folder, widgetName);
+  var localesFolder = path.join(widgetFolder, 'locales');
+
+  if (!options.locales) {
     localeNames = fs.readdirSync(localesFolder, 'utf8');
   } else {
     localeNames = options.locales.split(',');
   }
 
-  var instances = widgetInfo.item.instances;
+  /**
+   * Update base widget locale data
+   *
+   * @param {Function} next 
+   */
+  function uploadWidgetBaseLocale(next) {
+    async.forEach(localeNames, function (localeName, cbLocaleName) {
+      var fileName = util.format('ns.%s.json', widgetInfo.item.i18nresources || widgetName);
+      var localeFile = path.join(localesFolder, localeName, fileName);
+      var localeData = fs.readJsonSync(localeFile);
 
-  winston.info('Uploading locales for %s instances...', instances.length);
+      uploadWidgetDescriptorLocale.call(self, widgetId, localeName, localeData, function (error) {
+        if (error) {
+          winston.warn(
+            util.format('Unable to upload base locale "%s" for widget %s: %s', localeName, widgetName, error)
+          );
+        }
 
-  async.forEachSeries(
-    instances,
-    function (instance, cbInstance) {
-      var instanceId = instance.repositoryId;
+        cbLocaleName();
+      });
+    }, function () {
+      winston.info('Uploaded base locale for widget %s', widgetName);
+      next();
+    });
+  }
 
-      winston.info('Uploading locales for instance %s', instanceId);
+  /**
+   * Update widget instances locale data
+   *
+   * @param {Function} next 
+   */
+  function uploadWidgetInstancesLocale(next) {
+    async.eachLimit(
+      instances,
+      4,
+      function (instance, cbInstance) {
+        var instanceId = instance.repositoryId;
 
-      async.forEach(localeNames, function (localeName, cbLocaleName) {
-        var fileName = util.format('ns.%s.json', widgetInfo.item.i18nresources || widgetInfo.item.widgetType);
-        var localeFile = path.join(localesFolder, localeName, fileName);
-        var localePayload = fs.readJsonSync(localeFile);
+        async.forEach(localeNames, function (localeName, cbLocaleName) {
+          var fileName = util.format('ns.%s.json', widgetInfo.item.i18nresources || widgetName);
+          var localeFile = path.join(localesFolder, localeName, fileName);
+          var localeData = fs.readJsonSync(localeFile);
 
-        // Get custom locales from widget
-        fetchInstanceLocale.call(self, instanceId, localeName, function (error, localeData) {
-          if (error) {
-            winston.warn('Could not get locale "%s" for instance %s: %s', localeName, instanceId, e.message);
-          }
-
-          if (localeData && Object.keys(localeData.custom).length) {
-            localePayload.custom = localeData.custom;
-          }
-
-          updateInstanceLocale.call(self, instanceId, localeName, localePayload, function (error) {
+          // Get custom locales from widget
+          fetchInstanceLocale.call(self, instanceId, localeName, function (error, remotelocaleData) {
             if (error) {
-              winston.warn('Could not update locale "%s" for instance %s', localeName, instanceId);
+              /// In case of error retrieving the locale data, leave widget locales as it is so we don't lose data
+              winston.warn('Unable to retrieve locale "%s" for instance %s: %s', localeName, instanceId, error);
+              return cbLocaleName();
             }
 
-            cbLocaleName();
+            if (remotelocaleData && Object.keys(remotelocaleData.custom).length) {
+              localeData.custom = remotelocaleData.custom;
+            }
+
+            updateInstanceLocale.call(self, instanceId, localeName, localeData, function (error) {
+              if (error) {
+                winston.warn('Unable to upload locale "%s" for instance %s', localeName, instanceId);
+              }
+
+              cbLocaleName();
+            });
           });
+        }, function () {
+          winston.info('Uploaded locales for instance %s', instanceId);
+          cbInstance();
         });
-      }, function () {
-        winston.info('Uploaded locales for instance %s', instanceId);
-        cbInstance();
-      });
-    },
-    function (err) {
-      winston.info('All locales uploaded for widget %s.', widgetInfo.item.widgetType);
-      callback()
-    }
-  );
+      },
+      function () {
+        winston.info('Uploaded locales for widget %s instances', widgetName);
+        next();
+      }
+    );
+  }
+
+  /**
+   * Handle command upload command finish event
+   * @param {Error} error 
+   */
+  function onFinish(error) {
+    if (error) return callback(error);
+
+    winston.info('Finished uploading locales for widget %s', widgetName);
+    callback();
+  }
+
+  winston.info('Starting locales upload for widget %s', widgetName);
+
+  async.waterfall([
+    uploadWidgetBaseLocale,
+    uploadWidgetInstancesLocale,
+  ], onFinish);
 }
 
 module.exports = {
