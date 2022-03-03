@@ -36,9 +36,9 @@ PageTags.prototype.makeRequest = async function (commandOptions, requestConfig =
     const responses = [];
     let { area } = commandOptions;
     const api = requestConfig.api || '';
-    const siteIds = await getSitesIds.call({
+    const siteIds = commandOptions.siteIds || await getSitesIds.call({
       _occ: this._occ
-    }, commandOptions.siteIds);
+    });
 
     if(!area) {
       if(!commandOptions.file) {
