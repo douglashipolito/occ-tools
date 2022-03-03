@@ -1,20 +1,29 @@
 "use strict";
 
-var winston = require("winston");
+let _sitesIdsCache = null;
 
 module.exports = function (sitesIds) {
   const self = this;
 
   return new Promise((resolve, reject) => {
-    if(typeof sitesIds === 'string') {
-      return resolve(sitesIds.split(','));
+    if (_sitesIdsCache) {
+      return resolve(_sitesIdsCache);
+    }
+
+    if (typeof sitesIds === "string") {
+      const ids = sitesIds.split(",");
+      _sitesIdsCache = ids;
+      return resolve(ids);
     }
 
     self._occ
-    .promisedRequest(`sites`)
-    .then((response) => {
-      resolve(response.items.map(item => item.repositoryId));
-    })
-    .catch((e) => reject(e));
-    })
-  };
+      .promisedRequest(`sites`)
+      .then((response) => {
+        const ids = response.items.map((item) => item.repositoryId);
+        _sitesIdsCache = ids;
+
+        resolve(_sitesIdsCache);
+      })
+      .catch((e) => reject(e));
+  });
+};
