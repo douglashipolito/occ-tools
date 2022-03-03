@@ -2,8 +2,9 @@ const EventEmitter = require('events').EventEmitter;
 const util = require('util');
 const OCC = require('../occ');
 const Auth = require('../auth');
-const appConfig = require('../config');
 const areasMapping = require('./areas-mapping');
+var getSitesIds = require('../sites/get');
+
 const path = require('path');
 
 function callbackHandler(message, error) {
@@ -35,7 +36,9 @@ PageTags.prototype.makeRequest = async function (commandOptions, requestConfig =
     const responses = [];
     let { area } = commandOptions;
     const api = requestConfig.api || '';
-    const siteIds = commandOptions.siteIds || appConfig.sitesIds;
+    const siteIds = await getSitesIds.call({
+      _occ: this._occ
+    }, commandOptions.siteIds);
 
     if(!area) {
       if(!commandOptions.file) {

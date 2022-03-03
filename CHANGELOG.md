@@ -2,6 +2,11 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [3.1.1] - 2022-03-03]
+
+### Fixed
+- Issue with the siteIds request. Since we were trying to get the siteIds right in the occ-tools init, we could face the situation where the user didn't have the credentials set and then this siteIds request would always fail... so, removing this logic of getting the siteIds to be a separate module instead of global config.
+
 ## [3.1.0] - 2022-02-23]
 
 ### Fixed
