@@ -43,14 +43,13 @@ module.exports = function (widgetId, options, callback) {
   /**
    * Fetch initial widget information
    *
-   * @param {Object} options The options object.
    * @param {Function} callback The fn to be executed after uploading.
    */
-  function fetchWidgetsInfo(options, callback) {
+  function fetchWidgetsInfo(callback) {
     // If info is not present in options, request info
     if (!options.info) {
       getWidgetsInfo.call(self, widgetId, function (err, widgetsInfo) {
-        callback(err, options, widgetsInfo);
+        callback(err, widgetsInfo);
       });
       return;
     }
@@ -59,35 +58,33 @@ module.exports = function (widgetId, options, callback) {
       return widgetInfo.item.widgetType === widgetId;
     });
 
-    callback(null, options, widgetsInfo);
+    callback(null, widgetsInfo);
   }
 
   /**
    * Validate widgets info for later processing
    *
-   * @param {Object} options The options object.
    * @param {Array} widgetsInfo The list of widgets info.
    * @param {Function} callback The fn to be executed after uploading.
    */
-  function validateWidgetsInfo(options, widgetsInfo, callback) {
+  function validateWidgetsInfo(widgetsInfo, callback) {
     if (widgetsInfo.length === 0) {
       return callback(
         util.format('No widget with name "%s" found in OCC.', widgetId)
       );
     }
 
-    callback(null, options, widgetsInfo);
+    callback(null, widgetsInfo);
   }
 
   /**
    * Validate widgetMeta.json file if it exits
    * Transpile widget based on ES6 flag from json content
    *
-   * @param {Object} options The options object.
    * @param {Array} widgetsInfo The list of widgets info.
    * @param {Function} callback The fn to be executed after uploading.
    */
-  function transpileWidgetsIfNeeded(options, widgetsInfo, callback) {
+  function transpileWidgetsIfNeeded(widgetsInfo, callback) {
     async.each(
       widgetsInfo,
       function (widgetInfo, cbTranspile) {
@@ -113,7 +110,7 @@ module.exports = function (widgetId, options, callback) {
         cbTranspile(null);
       },
       function (err) {
-        callback(err, options, widgetsInfo);
+        callback(err, widgetsInfo);
       }
     );
   }
@@ -121,13 +118,12 @@ module.exports = function (widgetId, options, callback) {
   /**
    * Create an backup file in case command fails
    *
-   * @param {Object} options command options
    * @param {Array} widgetInfo widget information
    * @param {Function} callback function to be called when finished
    */
-  function createBackupIfNeeded(options, widgetInfo, callback) {
+  function createBackupIfNeeded(widgetInfo, callback) {
     if(!options.backup) {
-      return callback(null, options, widgetInfo);
+      return callback(null, widgetInfo);
     }
 
     winston.info(`Making a backup of the widget ${widgetId}... `);
@@ -149,7 +145,7 @@ module.exports = function (widgetId, options, callback) {
         return callback(error);
       }
 
-      callback(null, options, widgetInfo);
+      callback(null, widgetInfo);
     };
 
     backup.call(self, widgetId, self._occ, backupHandler, backupConfigs);
@@ -158,11 +154,10 @@ module.exports = function (widgetId, options, callback) {
   /**
    * Will upload only the specified widget files
    *
-   * @param {Object} options command options
    * @param {Array} widgetInfo widget information
    * @param {Function} callback function to be called when finished
    */
-  function uploadWidgetFiles(widgetInfo, options, callback) {
+  function uploadWidgetFiles(widgetInfo, callback) {
     var files = Array.isArray(options.files) ? options.files : ALL_FILES;
 
     async.forEachSeries(files, function (file, cbFile) {
@@ -205,11 +200,10 @@ module.exports = function (widgetId, options, callback) {
   /**
    * Start widget uploading process
    *
-   * @param {Object} options command options
    * @param {Array} widgetInfo widget information
    * @param {Function} callback function to be called when finished
    */
-  function uploadWidgets(options, widgetsInfo, callback) {
+  function uploadWidgets(widgetsInfo, callback) {
     var widgetUploadCurrentCount = 0;
     var widgetsCount = widgetsInfo.length;
 
@@ -225,7 +219,7 @@ module.exports = function (widgetId, options, callback) {
       var gitStatus = execSync('git status --porcelain').toString().trim();
       widgetInfo.versionInfo.hasUnstagedChanges = gitStatus.length > 0 ? true : false;
 
-      uploadWidgetFiles.call(self, widgetInfo, options, callback);
+      uploadWidgetFiles.call(self, widgetInfo, callback);
     }
 
     async.timesSeries(options.times, function(count, next) {
@@ -249,7 +243,6 @@ module.exports = function (widgetId, options, callback) {
   }
 
   async.waterfall([
-    async.constant(options),
     fetchWidgetsInfo,
     createBackupIfNeeded,
     validateWidgetsInfo,
