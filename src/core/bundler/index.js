@@ -42,6 +42,11 @@ function loadWidgets(options, done) {
         var widgetName = widgetConfig.widgetType || path.basename(widgetPath);
         var baseEntryPath = path.join(widgetPath, options.source);
 
+        // Transpile only the widgets passed as option
+        if (widgetsByOptions && widgetsByOptions.indexOf(widgetName) < 0) {
+          return;
+        }
+
         try {
           fs.accessSync(baseEntryPath + '-src', fs.F_OK);
           baseEntryPath = baseEntryPath + '-src';
@@ -50,11 +55,6 @@ function loadWidgets(options, done) {
         }
 
         var destinationDir = path.join(widgetPath, options.dest);
-
-        //Transpile only the widgets passed as option
-        if(widgetsByOptions && widgetsByOptions.indexOf(widgetName) < 0) {
-          return;
-        }
 
         widgetsList.push({
           name: widgetName,

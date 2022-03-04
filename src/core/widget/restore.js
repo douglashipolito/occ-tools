@@ -1,5 +1,3 @@
-'use strict';
-
 var winston = require('winston');
 var async = require('async');
 var path = require('path');
@@ -144,11 +142,11 @@ var createInstances = function (widgetType, backup, occ, config, existingInstanc
  * @param {object} instances The new widget instances
  * @param {object} backup The backup information
  */
-var replaceWidgetInstaces = function(structure, instances, backup) {
+var replaceWidgetInstances = function(structure, instances, backup) {
   if (structure.regions) {
     structure.regions.forEach(function (region) {
       if (region.regions) {
-        replaceWidgetInstaces(region, instances, backup);
+        replaceWidgetInstances(region, instances, backup);
       }
 
       region.widgets.forEach(function (widget) {
@@ -174,11 +172,12 @@ var placeInstances = function (widgetType, backup, occ, config, instances, callb
   if (!config.global && instances && backup.structures && Object.keys(backup.structures).length) {
     winston.info('Restoring widget positions on pages');
     var structureIds = Object.keys(backup.structures);
+
     async.forEachSeries(structureIds, function (structureId, cb) {
       var structure = backup.structures[structureId];
 
       // replace the old widget IDs by the newly generated ones
-      replaceWidgetInstaces(structure, instances, backup);
+      replaceWidgetInstances(structure, instances, backup);
 
       // updates the page layout with the new instances
       var request = {
