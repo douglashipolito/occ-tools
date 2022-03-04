@@ -2,6 +2,13 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [3.2.0] - 2022-03-04]
+
+### Fixed
+- Fixed issues where locales where getting lost on upload command.
+- Refactor on upload command. Code is more modular now and processes are cleaner on terminal.
+- Disabled SSE variables sync with vault. We need first to define the process properly so different teams can update vault
+
 ## [3.1.2] - 2022-03-03]
 
 ### Fixed
