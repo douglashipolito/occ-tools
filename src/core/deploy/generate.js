@@ -23,8 +23,6 @@ function processCustomWidget(changes, filePath) {
   if (filePath.length > 1) {
     var forcedUpgradeWidgets = [
       'oeCheckoutAddressBook',
-      'oeHeroBanner',
-      'oeFaqSection',
       'oeVideoPromoBannerWidget'
     ];
 
@@ -533,14 +531,14 @@ module.exports = function(revision, options, callback) {
               });
             })
           }
-        case 'sseVariable':
-          if (_changes[changeType]) {
-            _deployJson.push({
-              operation: 'deploy',
-              type: changeType
-            });
-          }
-          break;
+        // case 'sseVariable': @TODO: we need to define the process to access Vault for all teams
+        //   if (_changes[changeType]) {
+        //     _deployJson.push({
+        //       operation: 'deploy',
+        //       type: changeType
+        //     });
+        //   }
+        //   break;
         case 'facets':
           if (_changes[changeType]) {
             _deployJson.push({
