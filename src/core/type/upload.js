@@ -67,9 +67,7 @@ const uploadTypeForDefaultLocale = async (occ, mainType, subType, options) => {
       body
     };
 
-    if (payload.allowNonUnderscoreNames) {
-      payload.api = `${payload.api}?=allowNonUnderscoreNames=true`;
-    }
+    payload.api = `${payload.api}?=allowNonUnderscoreNames=${!options.disallowNonUnderscoreNames}`;
 
     await occ.promisedRequest(payload);
   } else {
@@ -102,9 +100,7 @@ const uploadTypeForAlternateLocale = async (occ, mainType, subType, options, loc
       body
     };
 
-    if (payload.allowNonUnderscoreNames) {
-      payload.api = `${payload.api}?=allowNonUnderscoreNames=true`;
-    }
+    payload.api = `${payload.api}?=allowNonUnderscoreNames=${!options.disallowNonUnderscoreNames}`;
 
     await occ.promisedRequest(payload);
   } else {
@@ -129,7 +125,9 @@ const uploadType = async (occ, mainType, subType, options) => {
     }
   }));
 
-  await await downloadType(occ, mainType, subType);
+  if(options.downloadType) {
+    await downloadType(occ, mainType, subType);
+  }
 };
 
 const uploadTypes = (occ, mainType, subTypes, options) => {

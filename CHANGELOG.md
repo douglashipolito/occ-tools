@@ -2,6 +2,12 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [3.2.1] - 2022-03-10]
+
+### Fixed
+- Issue in the command upload type, the URL was not well formed.
+- Changed the default upload type argument `allowNonUnderscoreNames` to `disallowNonUnderscoreNames`, this will make the occ-tools to always upload with support to non underline names.
+
 ## [3.2.0] - 2022-03-04]
 
 ### Fixed
