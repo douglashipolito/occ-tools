@@ -23,10 +23,6 @@ const uploadProperties = async (propertySpec, type, localPropertyList, remotePro
       headers: { [constants.OCC_LANGUAGE_HEADER]: config.defaultLocale }
     };
 
-    if (options.allowNonUnderscoreNames) {
-      payload.api = `${payload.api}?=allowNonUnderscoreNames=true`;
-    }
-
     if (remoteProperties.hasOwnProperty(id)) {
       payload.method = constants.HTTP_METHOD_PUT;
       payload.api = `${payload.api}/${id}`;
@@ -47,6 +43,8 @@ const uploadProperties = async (propertySpec, type, localPropertyList, remotePro
         property.uiEditorType = property.type;
       }
     }
+
+    payload.api = `${payload.api}?=allowNonUnderscoreNames=${!options.disallowNonUnderscoreNames}`;
 
     payload.body = {
       productTypeId: type === constants.PRODUCT_TYPE_METADATA ? constants.BASE_PRODUCT_TYPE : type,
@@ -128,9 +126,7 @@ const alternateLocaleUploader = async (propertySpec, type, localPropertyList, re
       }
     };
 
-    if (options.allowNonUnderscoreNames) {
-      payload.api = `${payload.api}?=allowNonUnderscoreNames=true`;
-    }
+    payload.api = `${payload.api}?=allowNonUnderscoreNames=${!options.disallowNonUnderscoreNames}`;
 
     try {
       await occ.promisedRequest(payload);
