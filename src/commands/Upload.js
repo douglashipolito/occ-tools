@@ -438,11 +438,11 @@ Upload.prototype.do_type.help =
 
 Upload.prototype.do_type.options = [
   {
-    names: ['allowNonUnderscoreNames', 'u'],
-    helpArg: '[allow-non-underscore-names]',
+    names: ['disallowNonUnderscoreNames', 'u'],
+    helpArg: '[disallow-non-underscore-names]',
     type: 'bool',
     default: false,
-    help: '(Optional) If true, allow the creation of custom property names that do not contain an underscore(\'_\') - default: false.'
+    help: '(Optional) If true, it will disaallow the creation of custom property names that do not contain an underscore(\'_\') - default: false.'
   },
   {
     names: ['notUploadVariantValues', 'n'],
@@ -450,6 +450,13 @@ Upload.prototype.do_type.options = [
     type: 'bool',
     default: false,
     help: '(Optional) If true, send values to variants - default: false'
+  },
+  {
+    names: ['downloadType', 'd'],
+    helpArg: '[download-type]',
+    type: 'bool',
+    default: false,
+    help: '(Optional) If true, after uploading the type, the Type will be download to the local environment - default: false'
   }
 ];
 
