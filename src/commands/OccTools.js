@@ -33,6 +33,7 @@ var LocalServer = require('./LocalServer.js');
 var Environment = require('../core/env');
 var PageTags = require('./PageTags');
 var Hooks = require('../core/hooks');
+var Worksets = require('./Worksets');
 
 function OccTools(logger) {
   this.logger = logger;
@@ -258,5 +259,6 @@ OccTools.prototype.do_compile = Compile;
 OccTools.prototype.do_configs = Configs;
 OccTools.prototype.do_restart = Restart;
 OccTools.prototype.do_page_tags = PageTags;
+OccTools.prototype.do_worksets = Worksets;
 
 module.exports = OccTools;

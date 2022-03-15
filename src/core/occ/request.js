@@ -5,6 +5,7 @@ var winston = require('winston');
 var request = require('request');
 var fs = require('fs-extra');
 var config = require('../config');
+var CreateWorkset = require("../worksets/api/create");
 
 /**
  * Mount the config object.
@@ -269,6 +270,71 @@ function isPublishRunning(config, token, fileToken, next, callback) {
   });
 }
 
+/**
+ * Creates the workset and assign the workset
+ * id to the configs and to all requests
+ *
+ * @param   {Object}  requestData  The request configs object
+ * @param   {Function}  callback   The Async module callback
+ *
+ */
+function setWorkset(requestData, callback) {
+  var byPassApis = ['login', 'worksets'];
+  var url = requestData.url || request.api;
+
+  var isByPassApi = byPassApis.find(function (item) {
+    return url.includes(item);
+  });
+
+  if(config.worksetId) {
+    requestData.headers = {
+      ...requestData.headers,
+      'X-CC-Workset': config.worksetId
+    }
+  }
+
+  // If it's the allowed endpoint, just dontinue the process
+  if(isByPassApi) {
+    return callback()
+  }
+
+  // If the workset is not set yet and there is no error while
+  // setting the workset, try to create and get the workset id
+  if(!config.worksetId && !config.worksetError) {
+    var createWorkset = new CreateWorkset(this);
+    var username = config.credentials.username;
+    var worksetName = username.substring(0, username.indexOf('@'));
+
+    createWorkset.new(worksetName)
+      .then(function (data) {
+        var foundWorksets = data.worksets;
+        if(foundWorksets && !foundWorksets.length) {
+          winston.warn("Problem while fetching/creating the workset...");
+          config.worksetError = true;
+        } else {
+          config.worksetId = foundWorksets[0].repositoryId;
+          config.worksetName = worksetName;
+
+          winston.info('');
+          winston.info(`Adding changes to the workset "${config.worksetName}"...`);
+          winston.info('');
+        }
+
+        callback();
+      })
+      .catch(function (error) {
+        config.worksetError = true;
+        winston.warn("Error while fetching/creating the workset...", error.message);
+        callback();
+      });
+
+      return;
+  }
+
+  // Other regular cases no related to the workset creation
+  return callback();
+}
+
 module.exports = function(rawOpts, callback) {
   var self = this;
   var config = mountConfig(self._endpoint, rawOpts);
@@ -279,6 +345,7 @@ module.exports = function(rawOpts, callback) {
 
   async.waterfall(
     [
+      setWorkset.bind(self, config),
       getToken.bind(self),
       getFileToken.bind(self),
       function (token, fileToken, callback) {

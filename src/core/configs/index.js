@@ -165,7 +165,7 @@ Configs.prototype.setTotpCode = function (code, cb) {
 Configs.prototype.setVaultToken = function (code, cb) {
   const self = this;
   self.ensureMainConfigsFile((error, configsJson) => {
-    
+
     if (error) return cb(error);
 
     configsJson['vault-token'] = code;
@@ -338,7 +338,9 @@ Configs.prototype.setEnvCredentials = function (options, cb) {
         configsJson.projects.current.credentials['secret'] = getCredentialValue(credentialsObject, envCredentials, 'secret');
       }
 
-      updateConfigs(configsJson, 'Environment credentials', cb);
+      removeLoginToken(function () {
+        updateConfigs(configsJson, 'Environment credentials', cb);
+      });
     };
 
     if(!options.force && !envCredentials.username && !envCredentials.password && !envCredentials['application-key'] && !envCredentials['secret']) {
