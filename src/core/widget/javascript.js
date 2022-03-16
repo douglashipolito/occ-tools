@@ -12,7 +12,7 @@ var uploadFile = require('../files/upload');
  * @param  {Object}   widgetInfo The widget info.
  * @param  {Function} callback   The fn to be executed after upload.
  */
- function uploadAllJS(widgetInfo, options, callback) {
+function uploadAllJS(widgetInfo, options, callback) {
   var self = this;
   var widgetBasePath = widgetInfo._basePath;
   var describeJsPath = util.format('widgetDescriptors/%s/javascript', widgetInfo.item.id);

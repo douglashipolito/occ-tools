@@ -4,7 +4,7 @@ var util = require('util');
 var fs = require('fs-extra');
 var async = require('async');
 var config = require('../config');
-const { getErrorFromRequest } = require('./utils');
+var { getErrorFromRequest } = require('./utils');
 
 /**
  * Updates widget base less content
@@ -103,9 +103,9 @@ function uploadLess(widgetInfo, callback) {
         uploadInstanceLess.call(self, instanceId, source, function (error) {
           // For widget instances we just warn
           if (error) {
-            winston.warn('Unable to upload base LESS for instance %s: %s', instanceId, error);
+            winston.warn('Unable to upload LESS for instance %s: %s', instanceId, error);
           } else {
-            winston.info('Uploaded LESS for instance %s', instance.id);
+            winston.info('Uploaded LESS for instance %s', instanceId);
           }
 
           cbInstance();

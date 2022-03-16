@@ -4,7 +4,7 @@ var util = require('util');
 var fs = require('fs-extra');
 var async = require('async');
 var config = require('../config');
-const { getErrorFromRequest } = require('./utils');
+var { getErrorFromRequest } = require('./utils');
 
 /**
  * Memoized request for OCC locales
