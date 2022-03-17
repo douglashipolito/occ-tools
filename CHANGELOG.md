@@ -15,7 +15,7 @@ This project must adhere to [this](https://github.com/olivierlacan/keep-a-change
 - Ability to auto-assign the workset to all requests, meaning that any change done through occ-tools will grouped by the workset.
 - New option to the command `occ-tools configs` called `set-workset` which will allow the user to change the workset name when needed.
 - Changed the command `occ-tools trigger publish` to always use the workset and only publish the user's changes
-- Improved `upload widget` command by changing the option `auto-restore` `no-auto-restore`, meaning that now, the auto-restore is enabled by default.
+- Improved `upload widget` command by changing the option `auto-restore` to `no-auto-restore`, meaning that now, the auto-restore is enabled by default.
 - Improved the `occ-tools configs set-env` and `occ-tools configs set-env-credentials`, it will now always remove the token after changing the credentials.
 
 ## [3.2.1] - 2022-03-10]
