@@ -31,7 +31,7 @@ Upload.prototype.do_widget = function(subcmd, opts, args, callback) {
     minify: opts.minify || false,
     locales: opts.locales,
     backup: !opts.no_backup,
-    autoRestore: opts.auto_restore
+    autoRestore: !opts.no_auto_restore
   };
 
   var widget = new Widget();
@@ -86,10 +86,10 @@ Upload.prototype.do_widget.options = [
     help: '(Optional) If used, no backup will be created. (default: false)'
   },
   {
-    names: ['auto-restore', 'a'],
+    names: ['no-auto-restore', 'a'],
     type: 'bool',
     default: false,
-    help: '(Optional) Auto restores the widget if something goes wrong. (default: false)'
+    help: '(Optional) Disables the Auto restore feature in case something goes wrong. (default: false)'
   }
 ];
 

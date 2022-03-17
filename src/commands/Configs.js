@@ -428,9 +428,9 @@ Configs.prototype.do_set_env = function(subcmd, opts, args, callback) {
         }
       }
     });
-  
+
     prompt.start();
-  
+
     prompt.get(schema, function (error, result) {
       if(error) {
         if (error.message === 'canceled') {
@@ -439,7 +439,7 @@ Configs.prototype.do_set_env = function(subcmd, opts, args, callback) {
           return callback(error.message);
         }
       }
-  
+
       occToolsConfigs.setEnv(result.name, callback);
     });
   } else {
@@ -605,6 +605,40 @@ Configs.prototype.do_configs_path = function(subcmd, opts, args, callback) {
 
 Configs.prototype.do_configs_path.help = (
   'Location of occ-tools configurations file\n\n' +
+  'Usage:\n' +
+  '     {{name}} {{cmd}} [options] \n\n' +
+  '{{options}}'
+);
+
+Configs.prototype.do_set_workset = function(subcmd, opts, args, callback) {
+  var occToolsConfigs = new _Configs();
+
+  var schema = setPromptSchema({
+    properties: {
+      'workset': {
+        required: true,
+        description: 'Workset name'
+      }
+    }
+  });
+
+  prompt.start();
+
+  prompt.get(schema, function (error, result) {
+    if(error) {
+      if (error.message === 'canceled') {
+        return callback('\nOperation canceled');
+      }else {
+        return callback(error.message);
+      }
+    }
+
+    occToolsConfigs.setWorkset(result, callback);
+  });
+};
+
+Configs.prototype.do_set_workset.help = (
+  'Set the workset name\n\n' +
   'Usage:\n' +
   '     {{name}} {{cmd}} [options] \n\n' +
   '{{options}}'

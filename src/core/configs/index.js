@@ -165,7 +165,7 @@ Configs.prototype.setTotpCode = function (code, cb) {
 Configs.prototype.setVaultToken = function (code, cb) {
   const self = this;
   self.ensureMainConfigsFile((error, configsJson) => {
-    
+
     if (error) return cb(error);
 
     configsJson['vault-token'] = code;
@@ -338,7 +338,9 @@ Configs.prototype.setEnvCredentials = function (options, cb) {
         configsJson.projects.current.credentials['secret'] = getCredentialValue(credentialsObject, envCredentials, 'secret');
       }
 
-      updateConfigs(configsJson, 'Environment credentials', cb);
+      removeLoginToken(function () {
+        updateConfigs(configsJson, 'Environment credentials', cb);
+      });
     };
 
     if(!options.force && !envCredentials.username && !envCredentials.password && !envCredentials['application-key'] && !envCredentials['secret']) {
@@ -545,6 +547,25 @@ Configs.prototype.getProjectSettings = function (cb) {
   var projectSettings = occToolsProjectJson['project-settings'] || {};
   cb(projectSettings);
   return projectSettings;
+};
+
+Configs.prototype.setWorkset = function (options, cb) {
+  var self = this;
+
+  self.ensureMainConfigsFile(function(error, configsJson) {
+    if(error) {
+      cb(error);
+      return;
+    }
+
+    if(options.workset.length > 25) {
+      cb('The workset name can\'t be greater than 25 characters. Please try again with a shorter name.');
+      return;
+    }
+
+    configsJson.workset = options.workset;
+    updateConfigs(configsJson, 'Workset', cb);
+  });
 };
 
 module.exports = Configs;

@@ -79,7 +79,7 @@ class Hooks {
         const hookModule = this.hooksModules[hookKey];
 
         winston.info('');
-        winston.info(`Trigerring hook ${hookKey}`);
+        winston.info(`Triggering hook ${hookKey}`);
         winston.info('');
 
         await hookModule({
