@@ -1,6 +1,8 @@
 'use strict';
 
 var winston = require('winston');
+var config = require('../config');
+var FindWorkset = require("../worksets/api/find");
 
 module.exports = function(callback) {
   var self = this;
@@ -51,25 +53,46 @@ module.exports = function(callback) {
     });
   };
 
-  winston.info('Triggering publish');
-  var options = {
-    api: 'publish',
-    method: 'post',
-    body: {}
-  };
-  self._occ.request(options, function(error, response) {
-    if (error) {
-      winston.error(error);
-      callback('Error while triggering the publish');
+  var triggerPublish = function(worksetResponse) {
+    var options = {
+      api: 'publishingChangeLists/publish',
+      method: 'post',
+      body: {
+        eventName: config.credentials.username,
+        operationType: "selective_publish",
+        worksetId: 'default'
+      }
+    };
+
+    if(worksetResponse) {
+      options.body.worksetId = worksetResponse.repositoryId;
+      winston.info(`Publishing changes of workset "${config.workset}"...`);
+    } else {
+      winston.warn('No specific workset found for the current user... publishing the default one.');
     }
 
-    if (response.publishRunning) {
-      // if the search was started right away, the live status will be displayed on console
-      winston.info(response.statusMessage);
-      getPublishingStatus(callback, [], false);
-    } else {
-      winston.error(response.statusMessage);
-      callback('Error while triggering the publish');
-    }
-  });
+    self._occ.request(options, function(error, response) {
+      if (error) {
+        winston.error(error);
+        callback('Error while triggering the publish');
+      }
+
+      if (response.publishRunning) {
+        // if the search was started right away, the live status will be displayed on console
+        winston.info(response.statusMessage);
+        getPublishingStatus(callback, [], false);
+      } else {
+        winston.error(response.message);
+        callback('Error while triggering the publish');
+      }
+    });
+  }
+
+  winston.info('Triggering publish');
+  var worksetFinder = new FindWorkset(self._occ);
+
+  worksetFinder
+    .findCurrentUserWorkset()
+    .then(triggerPublish)
+    .catch(callback);
 };

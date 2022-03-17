@@ -2,6 +2,22 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [3.3.0] - 2022-03-17]
+
+### Added
+- New command matching the Oracle's [Worksets feature](https://docs.oracle.com/en/cloud/saas/cx-commerce/21c/uoccs/understand-worksets.html)
+  - The command is `occ-tools worksets` and the available sub-commands are:
+    - list - List all worksets.
+    - create - Create a new workset.
+    - delete - Delete worksets.
+    - update - Delete worksets.
+- Ability to auto create worksets based on the user's name
+- Ability to auto-assign the workset to all requests, meaning that any change done through occ-tools will grouped by the workset.
+- New option to the command `occ-tools configs` called `set-workset` which will allow the user to change the workset name when needed.
+- Changed the command `occ-tools trigger publish` to always use the workset and only publish the user's changes
+- Improved `upload widget` command by changing the option `auto-restore` to `no-auto-restore`, meaning that now, the auto-restore is enabled by default.
+- Improved the `occ-tools configs set-env` and `occ-tools configs set-env-credentials`, it will now always remove the token after changing the credentials.
+
 ## [3.2.1] - 2022-03-10]
 
 ### Fixed
