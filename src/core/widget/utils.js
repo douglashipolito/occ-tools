@@ -29,11 +29,6 @@ function autoRestoreWidget(error, widgetId, backupFileName, options, callback) {
   }
 }
 
-function getErrorFromRequest(err, response) {
-  return err || (response && response.errorCode ? response.message : null);
-}
-
 module.exports = {
-  autoRestoreWidget,
-  getErrorFromRequest
+  autoRestoreWidget
 };

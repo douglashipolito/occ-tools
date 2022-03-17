@@ -4,10 +4,45 @@ var util = require('util');
 var fs = require('fs-extra');
 var async = require('async');
 var config = require('../config');
-var { getErrorFromRequest } = require('./utils');
+var { getErrorFromRequest } = require('../utils');
 
 var TEMPLATE_SECTIONS_REGEXP = /<!--\soc\slayout:\s.+?-->([^]+<!--\s\/oc\s-->)/gm;
 var TEMPLATE_CONTEXT_VARIABLES_REGEXP = /<!-- ko setContextVariable: [\s\S]*? \/ko -->/gm;
+
+
+
+/**
+ * Fetch instance template source code
+ *
+ * @param {*} instanceId 
+ * @param {*} callback 
+ */
+function getWidgetLocalTemplate(widgetFolder, widgetName) {
+  var widgetFolder = path.join(config.dir.project_root, 'widgets', widgetFolder, widgetName);
+  var templateFilePath = path.join(widgetFolder, 'templates', 'display.template');
+  // var templateFilePath = path.join(_config.dir.project_root, 'widgets', 'objectedge', widgetType, 'layouts', backup.widget.defaultLayout.name, 'widget.template');
+
+  return fs.readFileSync(templateFilePath, 'utf8');
+}
+
+/**
+ * Fetch instance template source code
+ *
+ * @param {*} instanceId 
+ * @param {*} callback 
+ */
+function fetchInstanceTemplate(instanceId, callback) {
+  var occ = this._occ;
+
+  occ.request({
+    api: util.format('widgets/%s/code', instanceId),
+    method: 'get'
+  }, function (err, response) {
+      var error = getErrorFromRequest(err, response);
+      var source = response && response.source;
+      callback(error, source);
+  });
+}
 
 /**
  * Update local source with elements from remote
@@ -75,25 +110,6 @@ function updateTemplateContextVariables(source, instanceSource) {
 }
 
 /**
- * Fetch instance template source code
- *
- * @param {*} instanceId 
- * @param {*} callback 
- */
-function fetchInstanceTemplate(instanceId, callback) {
-  var occ = this._occ;
-
-  occ.request({
-    api: util.format('widgets/%s/code', instanceId),
-    method: 'get'
-  }, function (err, response) {
-      var error = getErrorFromRequest(err, response);
-      var source = response && response.source;
-      callback(error, source);
-  });
-}
-
-/**
  * Updates widget base less content
  *
  * @param {String} widgetId id of the widget
@@ -150,13 +166,12 @@ function uploadTemplate(widgetInfo, callback) {
 
   // Widget data
   var widgetName = widgetInfo.item.widgetType;
+  var widgetFolder = widgetInfo.folder; 
   var widgetId = widgetInfo.item.id;
   var instances = widgetInfo.item.instances;
 
   // Get widget locales content folder
-  var widgetFolder = path.join(config.dir.project_root, 'widgets', widgetInfo.folder, widgetName);
-  var templateFilePath = path.join(widgetFolder, 'templates', 'display.template');
-  var source = fs.readFileSync(templateFilePath, 'utf8');
+  var source = getWidgetLocalTemplate(widgetFolder, widgetName);
 
   // Prepend metadata
   source = updateTemplateMetadata(source, widgetInfo);

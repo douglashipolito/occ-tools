@@ -4,7 +4,7 @@ var util = require('util');
 var fs = require('fs-extra');
 var async = require('async');
 var config = require('../config');
-var { getErrorFromRequest } = require('./utils');
+var { getErrorFromRequest } = require('../utils');
 
 /**
  * Updates widget base less content

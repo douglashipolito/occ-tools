@@ -32,11 +32,11 @@ module.exports = function (extensionName, file, opts, callback) {
     function (backup, callback) {
       winston.info('Restoring backup file...');
       if (extensionType === 'widget') {
-        restoreWidget.call(self, extensionName, backup, self._occ, callback);
+        restoreWidget.call(self, extensionName, backup, callback);
       } else if (extensionType === 'config' || extensionType === 'gateway') {
-        restoreSettings.call(self, extensionName, extensionType, backup, self._occ, callback);
+        restoreSettings.call(self, extensionName, extensionType, backup, callback);
       } else if (extensionType === 'app-level') {
-        restoreAppLevel.call(self, extensionName, backup, self._occ, callback);
+        restoreAppLevel.call(self, extensionName, backup, callback);
       } else {
         callback();
       }

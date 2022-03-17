@@ -168,7 +168,9 @@ var restoreGateway = function (settingsId, settingsType, backup, occ, callback) 
  * @param {request} occ The OCC requester
  * @param {function} callback The callback function
  */
-module.exports = function (settingsId, settingsType, backup, occ, callback) {
+module.exports = function (settingsId, settingsType, backup, callback) {
+  var occ = this._occ;
+
   async.waterfall([
     async.apply(restoreSettings, settingsId, settingsType, backup, occ),
     async.apply(restoreGateway, settingsId, settingsType, backup, occ)

@@ -38,7 +38,9 @@ var restoreAppLevel = function (id, backup, occ, callback) {
  * @param {Object} occ The OCC requester
  * @param {Function} callback The callback function
  */
-module.exports = function (id, backup, occ, callback) {
+module.exports = function (id, backup, callback) {
+  var occ = this._occ;
+
   async.waterfall([
     async.apply(restoreAppLevel, id, backup, occ)
   ], callback);

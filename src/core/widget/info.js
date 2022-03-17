@@ -1,9 +1,11 @@
 var util = require('util');
 var winston = require('winston');
 var async = require('async');
+const { getErrorFromRequest } = require('../utils');
 
 module.exports = function (widgetId, callback) {
   var self = this;
+  var occ = self._occ;
   var widgetsInfo = [];
 
   async.each(
@@ -13,24 +15,22 @@ module.exports = function (widgetId, callback) {
 
       var infoUrl = util.format('widgetDescriptors/instances?source=%s', self._settings.folders[folder].source);
 
-      self._occ.request(infoUrl, function(err, data) {
-        if (err) return callback(err);
+      occ.request(infoUrl, function(err, data) {
+        var error = getErrorFromRequest(err, data);
 
-        if (!data || typeof data.items === 'undefined') {
-          winston.warn('Undefined response for folder %s', folder);
-        } else {
-          data.items.forEach(function(item) {
-            widgetsInfo.push({ folder: folder, item: item });
-          });
-        }
+        if (err) return cbFolder(
+          util.format('Unable to retrieve widgets information for folder %s: %s', folder, error)
+        );
+
+        data.items.forEach(function(item) {
+          widgetsInfo.push({ folder: folder, item: item });
+        });
 
         return cbFolder();
       });
     },
     function (err) {
-      if (err) {
-        return callback(err);
-      }
+      if (err) return callback(err);
 
       var widgetInfo = widgetId ? widgetsInfo.filter(function (widgetInfo) {
         return widgetInfo.item.widgetType == widgetId;

@@ -89,6 +89,7 @@ module.exports = function (extensionName, opts, callback) {
         winston.info(msg);
         return callback();
       });
+
       widget.on('error', function(err) {
         winston.error(err);
         return callback();
