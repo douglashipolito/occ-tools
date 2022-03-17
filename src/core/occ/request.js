@@ -187,8 +187,6 @@ function tryToRequest(config, token, fileToken, maxAttempts, callback) {
   };
 
   var proceedWithRequest = function (config, err, callback) {
-    // console.log(arguments);
-
     if(err) {
       return callback(err);
     }
