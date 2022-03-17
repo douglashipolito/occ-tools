@@ -38,7 +38,7 @@ module.exports = function(callback) {
         winston.info('Publishing %d changes', response.numberOfChanges);
         winston.info(
           'Initial store catalog %s',
-          response.storeInitialDatasourceA
+          response.storeInitialDatasource
         );
         firstRun = true;
       }
