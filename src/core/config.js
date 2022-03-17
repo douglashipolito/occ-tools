@@ -256,7 +256,9 @@ var _configDescriptor = {
     [path.join(assetFilesPath, 'general')]: 'general',
     [path.join(assetFilesPath, 'thirdparty')]: 'thirdparty',
   },
-  webpackExternalsPattern
+  webpackExternalsPattern,
+  workset: configsData.workset,
+  worksetId: null
 };
 
 _configDescriptor.github = {

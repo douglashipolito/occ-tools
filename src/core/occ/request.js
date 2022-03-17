@@ -5,6 +5,7 @@ var winston = require('winston');
 var request = require('request');
 var fs = require('fs-extra');
 var config = require('../config');
+var _Configs = require('../configs');
 var CreateWorkset = require("../worksets/api/create");
 
 /**
@@ -185,7 +186,9 @@ function tryToRequest(config, token, fileToken, maxAttempts, callback) {
     });
   };
 
-  var proceedWithRequest = function (err, callback) {
+  var proceedWithRequest = function (config, err, callback) {
+    // console.log(arguments);
+
     if(err) {
       return callback(err);
     }
@@ -225,9 +228,9 @@ function tryToRequest(config, token, fileToken, maxAttempts, callback) {
     },
     function(callback) {
       if(tokenIsValid) {
-        isPublishRunning.call(self, config, token, fileToken, proceedWithRequest, callback);
+        isPublishRunning.call(self, config, token, fileToken, setWorkset.bind(self, proceedWithRequest), callback);
       } else {
-        proceedWithRequest(null, callback);
+        proceedWithRequest(config, null, callback);
       }
     },
     callback
@@ -247,7 +250,7 @@ function isPublishRunning(config, token, fileToken, next, callback) {
   }
 
   if(notAffectByPublishMethods.includes(method)) {
-    return next(null, callback);
+    return next(config, null, callback);
   }
 
   const publishStatusConfig = mountConfig(this._endpoint, 'publish?lastPublished=true');
@@ -258,7 +261,7 @@ function isPublishRunning(config, token, fileToken, next, callback) {
     }
 
     if(!body.publishRunning) {
-      return next(null, callback);
+      return next(config, null, callback);
     }
 
     winston.info('There is a publish in progress, waiting for this process to be finished...');
@@ -271,6 +274,22 @@ function isPublishRunning(config, token, fileToken, next, callback) {
 }
 
 /**
+ * Sets workset name in the configs if it's not present
+ *
+ * @param   {String}    workset   The workset name
+ * @param   {Function}  callback  Async module callback function
+ *
+ */
+function createWorksetConfigIfNotAvailable(workset, callback) {
+  if(config.workset) {
+    return callback();
+  }
+
+  var occToolsConfigs = new _Configs();
+  occToolsConfigs.setWorkset({ workset }, callback);
+}
+
+/**
  * Creates the workset and assign the workset
  * id to the configs and to all requests
  *
@@ -278,61 +297,85 @@ function isPublishRunning(config, token, fileToken, next, callback) {
  * @param   {Function}  callback   The Async module callback
  *
  */
-function setWorkset(requestData, callback) {
-  var byPassApis = ['login', 'worksets'];
+var worksetError = false;
+function setWorkset(next, requestData, error, callback) {
+  if(error) {
+    return callback(error);
+  }
+
+  var byPassApis = ['login', 'worksets', 'publish'];
   var url = requestData.url || request.api;
 
   var isByPassApi = byPassApis.find(function (item) {
     return url.includes(item);
   });
 
-  if(config.worksetId) {
-    requestData.headers = {
-      ...requestData.headers,
-      'X-CC-Workset': config.worksetId
+  var setWorksetIdHeaders = function() {
+    if(config.worksetId) {
+      requestData.headers = {
+        ...requestData.headers,
+        'X-CC-Workset': config.worksetId
+      }
     }
-  }
+  };
+
+  // if workwsetId already available
+  // set it in the headers request
+  setWorksetIdHeaders();
 
   // If it's the allowed endpoint, just dontinue the process
   if(isByPassApi) {
-    return callback()
+    return next(requestData, null, callback);
   }
 
   // If the workset is not set yet and there is no error while
   // setting the workset, try to create and get the workset id
-  if(!config.worksetId && !config.worksetError) {
+  if(!config.worksetId && !worksetError) {
     var createWorkset = new CreateWorkset(this);
     var username = config.credentials.username;
-    var worksetName = username.substring(0, username.indexOf('@'));
+    var worksetName = config.workset || username.substring(0, username.indexOf('@'));
 
     createWorkset.new(worksetName)
       .then(function (data) {
         var foundWorksets = data.worksets;
-        if(foundWorksets && !foundWorksets.length) {
-          winston.warn("Problem while fetching/creating the workset...");
-          config.worksetError = true;
-        } else {
-          config.worksetId = foundWorksets[0].repositoryId;
-          config.worksetName = worksetName;
 
-          winston.info('');
-          winston.info(`Adding changes to the workset "${config.worksetName}"...`);
-          winston.info('');
+        if(config.worksetId) {
+          return next(requestData, null, callback);
         }
 
-        callback();
+        if(foundWorksets && !foundWorksets.length) {
+          winston.warn("Problem while fetching/creating the workset...");
+          worksetError = true;
+          return next(requestData, null, callback);
+        }
+
+        createWorksetConfigIfNotAvailable(worksetName, function (error) {
+          if(error) {
+            return callback(error);
+          }
+
+          config.worksetId = foundWorksets[0].repositoryId;
+          config.workset = worksetName;
+
+          winston.info('');
+          winston.info(`Adding changes to the workset "${config.workset}"...`);
+          winston.info('');
+
+          setWorksetIdHeaders();
+          next(requestData, null, callback);
+        });
       })
       .catch(function (error) {
-        config.worksetError = true;
+        worksetError = true;
         winston.warn("Error while fetching/creating the workset...", error.message);
-        callback();
+        next(requestData, null, callback);
       });
 
       return;
   }
 
   // Other regular cases no related to the workset creation
-  return callback();
+  return next(requestData, null, callback);
 }
 
 module.exports = function(rawOpts, callback) {
@@ -345,7 +388,6 @@ module.exports = function(rawOpts, callback) {
 
   async.waterfall(
     [
-      setWorkset.bind(self, config),
       getToken.bind(self),
       getFileToken.bind(self),
       function (token, fileToken, callback) {

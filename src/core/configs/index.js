@@ -549,4 +549,23 @@ Configs.prototype.getProjectSettings = function (cb) {
   return projectSettings;
 };
 
+Configs.prototype.setWorkset = function (options, cb) {
+  var self = this;
+
+  self.ensureMainConfigsFile(function(error, configsJson) {
+    if(error) {
+      cb(error);
+      return;
+    }
+
+    if(options.workset.length > 25) {
+      cb('The workset name can\'t be greater than 25 characters. Please try again with a shorter name.');
+      return;
+    }
+
+    configsJson.workset = options.workset;
+    updateConfigs(configsJson, 'Workset', cb);
+  });
+};
+
 module.exports = Configs;

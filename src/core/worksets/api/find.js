@@ -1,5 +1,7 @@
 'use strict';
 
+const config = require('../../config');
+
 /**
  * Find workset class
  */
@@ -142,6 +144,18 @@ class Find {
     return await this.all({
       query: `name co "${name}"`
     });
+  }
+
+  /**
+   * Returns the found workset based on the occ-tools configs
+   *
+   * @return  {Object} found workset or null
+   */
+  async findCurrentUserWorkset() {
+    const username = config.credentials.username;
+    const worksetName = config.workset || username.substring(0, username.indexOf('@'));
+    const foundWorkset = await this.byName(worksetName);
+    return foundWorkset.length ? foundWorkset[0] : null;
   }
 }
 
