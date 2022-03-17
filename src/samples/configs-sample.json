@@ -25,5 +25,6 @@
   },
   "use-mfa-login": true,
   "use-application-key": false,
-  "totp-code": "123456"
+  "totp-code": "123456",
+  "workset": ""
 }
