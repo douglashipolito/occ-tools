@@ -182,6 +182,11 @@ function uploadTemplate(widgetInfo, callback) {
    * @param {Function} next 
    */
   function uploadWidgetTemplate(next) {
+    // For global widgets we only update instances
+    if (widgetInfo.item.global) {
+      return next();
+    }
+
     updateWidgetDescriptorTemplate.call(self, widgetId, source, function (error) {
       // For base template widget we stop in case of error
       if (error) return next(

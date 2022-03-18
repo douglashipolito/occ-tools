@@ -150,42 +150,6 @@ module.exports = function (widgetType, backup, callback) {
   };
 
   /**
-   * When creating an instance occ tools wrap instance css in an id
-   * So we are reuploading less to get rid of that id
-   *
-   * @param {Array} newInstances The new widget instances
-   * @param {Function} callback The callback function
-   */
-  var restoreInstanceLess = function (newInstances, callback) {
-    if (newInstances && backup.widget && backup.widget.instances && backup.widget.instances.length) {
-      var lessFile = path.join(widgetFolder, 'less', 'widget.less');
-      var source = fs.readFileSync(lessFile, 'utf-8');
-
-      winston.info('Restoring instances LESS for widget %s', widgetType);
-
-      async.forEachSeries(
-        backup.widget.instances,
-        function (instance, cbInstance) {
-          var instanceId = newInstances[instance.id];
-
-          uploadInstanceLess.call(self, instanceId, source, function (error) {
-            if (error) {
-              winston.warn('Unable to restore instance %s less', instanceId);
-            }
-            cbInstance();
-          });
-        },
-        function () {
-          winston.info('Finished restoring instances LESS for widget %s', widgetType);
-          callback(null, newInstances);
-        }
-      );
-    } else {
-      callback(null, newInstances);
-    }
-  }
-
-  /**
    * Places the newly created instances on the layout they were before.
    *
    * @param {Array} instances The new widget instances
@@ -319,6 +283,41 @@ module.exports = function (widgetType, backup, callback) {
   };
 
   /**
+   * When creating an instance occ tools wrap instance css in an id
+   * So we are reuploading less to get rid of that id
+   *
+   * @param {Array} instances The new widget instances
+   * @param {Function} callback The callback function
+   */
+  var restoreInstanceLess = function (instances, callback) {
+    var lessFile = path.join(widgetFolder, 'less', 'widget.less');
+    var source = fs.readFileSync(lessFile, 'utf-8');
+
+    winston.info('Restoring instances LESS for widget %s', widgetType);
+
+    async.forEachSeries(
+      backup.widgetIds,
+      function (widgetId, cbInstance) {
+        var instanceId = instances[widgetId];
+
+        uploadInstanceLess.call(self, instanceId, source, function (error) {
+          if (error) {
+            winston.warn('Unable to restore LESS for instance %s ', instanceId);
+          } else {
+            winston.info('Restored instance LESS for instance %s', instanceId);
+          }
+
+          cbInstance();
+        });
+      },
+      function () {
+        winston.info('Finished restoring instances LESS for widget %s', widgetType);
+        callback(null, instances);
+      }
+    );
+  }
+
+  /**
    * Restore widget locales
    *
    * @param {Array} instances The new widget instances
@@ -333,11 +332,11 @@ module.exports = function (widgetType, backup, callback) {
         var payload = pick(localeResource, 'custom');
 
         if (!payload || isEmpty(payload.custom)) {
-          winston.info('Skiping "%s" locale information for widget %s', localeName, instanceId);
+          winston.info('Skiping "%s" locale information for instance %s', localeName, instanceId);
           return cbLocale();
         }
 
-        winston.info('Restoring "%s" locale information for widget %s...', localeName, instanceId);
+        winston.info('Restoring "%s" locale information for instance %s...', localeName, instanceId);
 
         occ.request({
           api: util.format('widgets/%s/locale/%s', instanceId, localeName),
@@ -350,9 +349,9 @@ module.exports = function (widgetType, backup, callback) {
           var error = getErrorFromRequest(err, response);
 
           if (error) {
-            winston.warn('Unable to restore "%s" locale information for widget %s: %s', localeName, instanceId, error);
+            winston.warn('Unable to restore "%s" locale information for instance %s: %s', localeName, instanceId, error);
           } else {
-            winston.info('Success restoring "%s" locale information for widget %s!', localeName, instanceId);
+            winston.info('Success restoring "%s" locale information for instance %s!', localeName, instanceId);
           }
 
           cbLocale();
@@ -459,7 +458,7 @@ module.exports = function (widgetType, backup, callback) {
             }
           });
         } else {
-          winston.warn('No settings to be updated for widget %s', instanceId);
+          winston.warn('No settings to be updated for instance %s', instanceId);
           cbInstance();
         }
       }, function (error) {
@@ -480,12 +479,12 @@ module.exports = function (widgetType, backup, callback) {
   function getWidgetLayoutTemplate(instances, callback) {
     if (backup.layouts && Object.keys(backup.layouts).length) {
       var templateFilePath = path.join(config.dir.project_root, 'widgets', 'objectedge', widgetType, 'layouts', backup.widget.defaultLayout.name, 'widget.template');
-  
+
       fs.readFile(templateFilePath, { encoding: 'utf8' }, function(error, defaultLayoutSource) {
         if(error) {
           return callback(error);
         }
-  
+
         callback(null, instances, defaultLayoutSource);
       });
     } else {
@@ -504,7 +503,7 @@ module.exports = function (widgetType, backup, callback) {
       winston.info('Restoring elementized widgets for "%s" widget', widgetType);
 
       // Restore each elementized widget instance
-      async.forEachOf(backup.layouts, function (layout, instanceIdFromBackup, cbMetadata) {
+      async.forEachOf(backup.layouts, function (layout, instanceIdFromBackup, cbLayout) {
         // Get ref id from widget id
         var instanceId = instances[instanceIdFromBackup];
 
@@ -514,7 +513,7 @@ module.exports = function (widgetType, backup, callback) {
 
         if (!layoutFragments) {
           winston.info('Widget instance "%s" (%s) has no elements in layout. Skipping...', layoutDisplayName, instanceId);
-          return cbMetadata();
+          return cbLayout();
         }
 
         // Remove setVariables binding
@@ -564,7 +563,7 @@ module.exports = function (widgetType, backup, callback) {
                 winston.info('Widget instance "%s" (%s) layout successfully restored. Restored %s element instances', layout.displayName, instanceId, newFragments.length);
               }
 
-              cbMetadata();
+              cbLayout();
             });
           }
         );
@@ -579,10 +578,10 @@ module.exports = function (widgetType, backup, callback) {
   async.waterfall([
     getWidgetInstances,
     createInstances,
-    restoreInstanceLess,
     placeInstances,
     getGlobalInstance,
     restoreSiteAssociations,
+    restoreInstanceLess,
     restoreLocales,
     getWidgetConfigurations,
     restoreConfiguration,

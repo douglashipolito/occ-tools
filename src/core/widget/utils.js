@@ -22,7 +22,7 @@ function autoRestoreWidget(error, widgetId, backupFileName, options, callback) {
         return callback(error);
       }
 
-      restore.call(self, widgetId, backupData, this._occ, callback);
+      restore.call(self, widgetId, backupData, callback);
     });
   } else {
     callback(error);
