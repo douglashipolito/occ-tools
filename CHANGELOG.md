@@ -2,6 +2,13 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [3.3.1] - 2022-03-18]
+
+### Fixed
+- Fixed issue where elements were being lost on upload command
+- Fixed issue where less was being lost on upgrade command
+- Request delete for unused elements when restoring
+
 ## [3.3.0] - 2022-03-17]
 
 ### Added

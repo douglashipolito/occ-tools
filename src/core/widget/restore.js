@@ -10,7 +10,7 @@ var uploadExtension = require('../extension/upload');
 var { getErrorFromRequest } = require('../utils');
 var { sanitizeElementizedLayout, replaceElementFragments, createElementsFromFragmentList } = require('./elements');
 var { updateTemplateSections } = require('./template');
-const { uploadInstanceLess } = require('./less');
+var { uploadInstanceLess } = require('./less');
 
 /**
  * Replace the old widget IDs by the newly generated ones.

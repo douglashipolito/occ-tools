@@ -56,7 +56,7 @@ var deleteElementFragment = function (instanceId, fragment, callback) {
     api: util.format('widgets/%s/element/%s', instanceId, fragment.tag),
     method: 'delete',
   }, function (err, response) {
-    const error = getErrorFromRequest(err, response);
+    var error = getErrorFromRequest(err, response);
     callback(error, response) 
   });
 }

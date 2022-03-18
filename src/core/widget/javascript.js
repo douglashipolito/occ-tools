@@ -170,7 +170,7 @@ function uploadAllJS(widgetInfo, options, callback) {
       }
 
       if (stats.hasErrors()) {
-        const statsErrors = stats.toJson().errors;
+        var statsErrors = stats.toJson().errors;
         done(statsErrors.join(os.EOL + os.EOL), null);
         return;
       }

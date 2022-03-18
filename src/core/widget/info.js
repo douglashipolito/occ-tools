@@ -1,7 +1,7 @@
 var util = require('util');
 var winston = require('winston');
 var async = require('async');
-const { getErrorFromRequest } = require('../utils');
+var { getErrorFromRequest } = require('../utils');
 
 module.exports = function (widgetId, callback) {
   var self = this;
