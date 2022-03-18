@@ -7,8 +7,7 @@ module.exports = function (widgetId, callback) {
   var self = this;
   var occ = self._occ;
   var widgetsInfo = [];
-
-  async.each(
+  async.eachSeries(
     Object.keys(self._settings.folders),
     function (folder, cbFolder) {
       winston.info('Fetching widgets info from %s folder...', folder);

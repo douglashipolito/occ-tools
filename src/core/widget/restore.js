@@ -10,6 +10,7 @@ var uploadExtension = require('../extension/upload');
 var { getErrorFromRequest } = require('../utils');
 var { sanitizeElementizedLayout, replaceElementFragments, createElementsFromFragmentList } = require('./elements');
 var { updateTemplateSections } = require('./template');
+const { uploadInstanceLess } = require('./less');
 
 /**
  * Replace the old widget IDs by the newly generated ones.
@@ -147,6 +148,42 @@ module.exports = function (widgetType, backup, callback) {
       callback(null, null);
     }
   };
+
+  /**
+   * When creating an instance occ tools wrap instance css in an id
+   * So we are reuploading less to get rid of that id
+   *
+   * @param {Array} newInstances The new widget instances
+   * @param {Function} callback The callback function
+   */
+  var restoreInstanceLess = function (newInstances, callback) {
+    if (newInstances && backup.widget && backup.widget.instances && backup.widget.instances.length) {
+      var lessFile = path.join(widgetFolder, 'less', 'widget.less');
+      var source = fs.readFileSync(lessFile, 'utf-8');
+
+      winston.info('Restoring instances LESS for widget %s', widgetType);
+
+      async.forEachSeries(
+        backup.widget.instances,
+        function (instance, cbInstance) {
+          var instanceId = newInstances[instance.id];
+
+          uploadInstanceLess.call(self, instanceId, source, function (error) {
+            if (error) {
+              winston.warn('Unable to restore instance %s less', instanceId);
+            }
+            cbInstance();
+          });
+        },
+        function () {
+          winston.info('Finished restoring instances LESS for widget %s', widgetType);
+          callback(null, newInstances);
+        }
+      );
+    } else {
+      callback(null, newInstances);
+    }
+  }
 
   /**
    * Places the newly created instances on the layout they were before.
@@ -542,6 +579,7 @@ module.exports = function (widgetType, backup, callback) {
   async.waterfall([
     getWidgetInstances,
     createInstances,
+    restoreInstanceLess,
     placeInstances,
     getGlobalInstance,
     restoreSiteAssociations,
