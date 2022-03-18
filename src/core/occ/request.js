@@ -302,10 +302,16 @@ function setWorkset(next, requestData, error, callback) {
   }
 
   var byPassApis = ['login', 'worksets', 'publish'];
+  var byPassMethods = ['get'];
+
   var url = requestData.url || request.api;
 
-  var isByPassApi = byPassApis.find(function (item) {
-    return url.includes(item);
+  var isByPassApi = byPassApis.find(function (api) {
+    return url.includes(api);
+  });
+
+  var isByPassMethod = byPassMethods.find(function (method) {
+    return requestData.method && requestData.method.toLowerCase().includes(method);
   });
 
   var setWorksetIdHeaders = function() {
@@ -321,8 +327,8 @@ function setWorkset(next, requestData, error, callback) {
   // set it in the headers request
   setWorksetIdHeaders();
 
-  // If it's the allowed endpoint, just dontinue the process
-  if(isByPassApi) {
+  // If it's the allowed endpoint or method, just dontinue the process
+  if(isByPassApi || isByPassMethod) {
     return next(requestData, null, callback);
   }
 
