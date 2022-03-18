@@ -170,11 +170,9 @@ var createElementsFromFragmentList = function (instanceId, source, fragments, ca
 
     // If fragment is not in template, then it's disabled and we don't need to include it
     if (!elementTagId || !source.includes(elementTagId)) {
-      winston.info('Disabling element instance "%s" for widget instance "%s" since it is not in widget layout', fragment.tag, instanceId);
-
       deleteElementFragment.call(self, instanceId, fragment, function (error) {
         if (error) {
-          winston.warn('Could not disable element fragment %s: %s', fragment.tag, error);
+          winston.warn('Could not delete element fragment %s: %s', fragment.tag, error);
         }
 
         return cbFragment();
@@ -198,12 +196,11 @@ var createElementsFromFragmentList = function (instanceId, source, fragments, ca
       }
 
       cbFragment();
-    })
+    });
   }, function () {
     callback(null, newFragments);
   });
 }
-
 
 module.exports = {
   deleteElementFragment,
@@ -214,5 +211,5 @@ module.exports = {
   getFragmentName,
   replaceElementFragments,
   sanitizeElementFragment,
-  sanitizeElementizedLayout
-}
+  sanitizeElementizedLayout,
+};
