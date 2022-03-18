@@ -158,7 +158,7 @@ function doRequest(config, token, fileToken, callback) {
   });
 }
 
-let tokenIsValid = false;
+let tokenIsValid = true;
 
 /**
  * Will try do to a request to OCC. If not succeded, will try n times until succeds or reach max attempts.
