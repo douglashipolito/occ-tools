@@ -42,7 +42,7 @@ module.exports = function (extensionName, opts, callback) {
     } else if (extensionType === 'config' || extensionType === 'gateway') {
       restoreSettings.call(self, extensionName, extensionType, backup, callback);
     } else if (extensionType === 'app-level') {
-      restoreAppLevel.call(self, extensionName, backup, self._occ, callback);
+      restoreAppLevel.call(self, extensionName, backup, callback);
     } else {
       callback();
     }
