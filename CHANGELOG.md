@@ -2,6 +2,11 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [3.3.1] - 2022-03-18]
+
+### Fixed
+- occ-tools was creating new worksets even for GET requests, causing some confusion in the admin publish lists. Changing it to only create workset when some change is made.
+
 ## [3.3.0] - 2022-03-17]
 
 ### Added
