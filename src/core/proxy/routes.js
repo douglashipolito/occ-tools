@@ -927,7 +927,11 @@ routes.appLevel = function () {
       try {
         var appLevelName = path.basename(appLevelPath);
 
-        proxyInstance.proxyServer.transpileAppLevel(appLevelName, appLevelPath, function (err, appLevelCompiledPath) {
+        proxyInstance.proxyServer.transpileAppLevel(appLevelName, appLevelPath, function (error, appLevelCompiledPath) {
+          if(error) {
+            return winston.error(`Error on transpiling app-level`, error);
+          }
+
           proxyInstance.proxyServer.setRoute({
             phase: 'request',
             url: '**/global/' + appLevelName + '.min.js*',
@@ -937,8 +941,8 @@ routes.appLevel = function () {
 
           proxyInstance.proxyServer.log('App Level ' + appLevelName + ' transpiled.');
         });
-      } catch(err) {
-
+      } catch(error) {
+        winston.error(`Error on proxying app-level`, error.message);
       }
     });
 };
