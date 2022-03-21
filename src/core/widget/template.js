@@ -7,9 +7,7 @@ var config = require('../config');
 var { getErrorFromRequest } = require('../utils');
 
 var TEMPLATE_SECTIONS_REGEXP = /<!--\soc\slayout:\s.+?-->([^]+<!--\s\/oc\s-->)/gm;
-var TEMPLATE_CONTEXT_VARIABLES_REGEXP = /<!-- ko setContextVariable: [\s\S]*? \/ko -->/gm;
-
-
+var TEMPLATE_CONTEXT_VARIABLES_REGEXP = /<!-- ko setContextVariable:\s*\{\s*name:\s*'elementConfig'[\s\S]*?\/ko -->/gm;
 
 /**
  * Fetch instance template source code
@@ -20,7 +18,6 @@ var TEMPLATE_CONTEXT_VARIABLES_REGEXP = /<!-- ko setContextVariable: [\s\S]*? \/
 function getWidgetLocalTemplate(widgetFolder, widgetName) {
   var widgetFolder = path.join(config.dir.project_root, 'widgets', widgetFolder, widgetName);
   var templateFilePath = path.join(widgetFolder, 'templates', 'display.template');
-  // var templateFilePath = path.join(_config.dir.project_root, 'widgets', 'objectedge', widgetType, 'layouts', backup.widget.defaultLayout.name, 'widget.template');
 
   return fs.readFileSync(templateFilePath, 'utf8');
 }
