@@ -248,7 +248,7 @@ OCCProxy.prototype.getWidgetsOptions = function (widgets, done) {
  * @return {String}           the index file content
  */
 function createJsBundleIndexFile(filesList) {
-  var appLevelIndexTemplate = fs.readFileSync(path.join(__dirname, '../extension/templates/app-level-index.js'), 'utf-8');
+  var appLevelIndexTemplate = fs.readFileSync(path.join(__dirname, '..', 'extension', 'templates', 'app-level-index.js'), 'utf-8');
 
   var dependenciesImports = [];
   var allDependencies = [];
@@ -435,7 +435,7 @@ OCCProxy.prototype.transpileAppLevel = function (appLevelName, appLevelPath, don
 
       filesList.push({
         fileName: jsName,
-        path: item
+        path: item.replace(/\\/g, '\\\\') // Making sure the app level generator will work fine with windows
       });
     }
   }).on('end', function () {

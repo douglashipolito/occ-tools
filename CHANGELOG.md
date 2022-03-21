@@ -2,6 +2,11 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [3.4.1] - 2022-03-21
+
+### Fixed 
+- There was a wrong path in the app-level transpiler for Windows version. This has been fixed.
+
 ## [3.4.0] - 2022-03-21
 
 ### Added 
