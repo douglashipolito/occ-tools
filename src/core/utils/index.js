@@ -3,6 +3,7 @@ const mapToArray = require('./mapToArray');
 const compareObjects = require('./compareObjects');
 const constants = require('./constants');
 const readJsonFile = require('./readJsonFile');
+const getErrorFromRequest = require('./getErrorFromRequest');
 
 module.exports = {
   arrayToMap,
@@ -12,4 +13,5 @@ module.exports = {
   compareObjects,
   constants,
   readJsonFile,
+  getErrorFromRequest,
 };

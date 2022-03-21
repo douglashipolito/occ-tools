@@ -4,12 +4,12 @@ var util = require('util');
 var fs = require('fs-extra');
 var async = require('async');
 var config = require('../config');
-const { getErrorFromRequest } = require('./utils');
+var { getErrorFromRequest } = require('../utils');
 
 /**
  * Memoized request for OCC locales
  */
-var _fetchAvailableLocales = async.memoize(function (callback) {
+var fetchAvailableLocales = async.memoize(function (callback) {
   var occ = this._occ;
 
   occ.request({
@@ -34,7 +34,7 @@ function fetchInstanceLocales(instanceId, callback) {
   var self = this;
   var locales = {};
 
-  _fetchAvailableLocales(function (err, availableLocales) {
+  fetchAvailableLocales(function (err, availableLocales) {
     async.map(
       availableLocales,
       function (locale, cbLocale) {
@@ -260,6 +260,7 @@ function uploadLocale(widgetInfo, options, callback) {
 }
 
 module.exports = {
+  fetchAvailableLocales,
   fetchInstanceLocales,
   fetchInstanceLocale,
   updateInstanceLocale,
