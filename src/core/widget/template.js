@@ -215,10 +215,11 @@ function uploadTemplate(widgetInfo, callback) {
           }
 
           // Update source with elements data and existing context variables
-          source = updateTemplateSections(source, instanceSource);
-          source = updateTemplateContextVariables(source, instanceSource);
+          var newSource = source;
+          newSource = updateTemplateSections(newSource, instanceSource);
+          newSource = updateTemplateContextVariables(newSource, instanceSource);
 
-          uploadInstanceTemplate.call(self, instanceId, source, function (error) {
+          uploadInstanceTemplate.call(self, instanceId, newSource, function (error) {
             // For widget instances we just warn
             if (error) {
               winston.warn('Unable to upload template for instance %s: %s', instanceId, error);

@@ -2,14 +2,19 @@
 All notable changes to occ-tools will be documented in this file.
 This project must adhere to [this](https://github.com/olivierlacan/keep-a-changelog/blob/master/CHANGELOG.md) format.
 
+## [3.4.2] - 2022-03-21
+
+### Fixed
+- Fixed issue where other setContextVariables section where being append to the widget
+
 ## [3.4.1] - 2022-03-21
 
-### Fixed 
+### Fixed
 - There was a wrong path in the app-level transpiler for Windows version. This has been fixed.
 
 ## [3.4.0] - 2022-03-21
 
-### Added 
+### Added
 - Support to elements in upload command
 - Request delete for unused elements when restoring
 
