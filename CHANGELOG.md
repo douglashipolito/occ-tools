@@ -5,9 +5,7 @@ This project must adhere to [this](https://github.com/olivierlacan/keep-a-change
 ## [3.3.1] - 2022-03-18]
 
 ### Fixed
-- Fixed issue where elements were being lost on upload command
-- Fixed issue where less was being lost on upgrade command
-- Request delete for unused elements when restoring
+- occ-tools was creating new worksets even for GET requests, causing some confusion in the admin publish lists. Changing it to only create workset when some change is made.
 
 ## [3.3.0] - 2022-03-17]
 
