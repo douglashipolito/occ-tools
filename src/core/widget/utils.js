@@ -22,18 +22,13 @@ function autoRestoreWidget(error, widgetId, backupFileName, options, callback) {
         return callback(error);
       }
 
-      restore.call(self, widgetId, backupData, this._occ, callback);
+      restore.call(self, widgetId, backupData, callback);
     });
   } else {
     callback(error);
   }
 }
 
-function getErrorFromRequest(err, response) {
-  return err || (response && response.errorCode ? response.message : null);
-}
-
 module.exports = {
-  autoRestoreWidget,
-  getErrorFromRequest
+  autoRestoreWidget
 };

@@ -93,7 +93,7 @@ module.exports = function (widgetId, options, callback) {
 
         if (fs.existsSync(widgetMetaFilePath)) {
           try {
-            const fileData = fs.readJSONSync(widgetMetaFilePath);
+            var fileData = fs.readJSONSync(widgetMetaFilePath);
 
             if (fileData.ES6) {
               widgetInfo._basePath = path.join(configs.dir.project_root, '.occ-transpiled', 'widgets', widgetInfo.item.widgetType);

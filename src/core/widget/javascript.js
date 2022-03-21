@@ -12,7 +12,7 @@ var uploadFile = require('../files/upload');
  * @param  {Object}   widgetInfo The widget info.
  * @param  {Function} callback   The fn to be executed after upload.
  */
- function uploadAllJS(widgetInfo, options, callback) {
+function uploadAllJS(widgetInfo, options, callback) {
   var self = this;
   var widgetBasePath = widgetInfo._basePath;
   var describeJsPath = util.format('widgetDescriptors/%s/javascript', widgetInfo.item.id);
@@ -170,7 +170,7 @@ var uploadFile = require('../files/upload');
       }
 
       if (stats.hasErrors()) {
-        const statsErrors = stats.toJson().errors;
+        var statsErrors = stats.toJson().errors;
         done(statsErrors.join(os.EOL + os.EOL), null);
         return;
       }

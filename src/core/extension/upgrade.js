@@ -38,12 +38,11 @@ module.exports = function (extensionName, opts, callback) {
 
   var restoreExtensionInfo = function (callback) {
     if (extensionType === 'widget') {
-      // Point where widget is restored
-      restoreWidget(extensionName, backup, self._occ, callback);
+      restoreWidget.call(self, extensionName, backup, callback);
     } else if (extensionType === 'config' || extensionType === 'gateway') {
-      restoreSettings(extensionName, extensionType, backup, self._occ, callback);
+      restoreSettings.call(self, extensionName, extensionType, backup, callback);
     } else if (extensionType === 'app-level') {
-      restoreAppLevel(extensionName, backup, self._occ, callback);
+      restoreAppLevel.call(self, extensionName, backup, callback);
     } else {
       callback();
     }
