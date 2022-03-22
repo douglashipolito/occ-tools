@@ -1,7 +1,7 @@
 {
   "name": "occ-tools-cli",
   "productName": "OCC-TOOLS-CLI",
-  "version": "3.4.1",
+  "version": "3.4.2",
   "description": "Object Edge tools for tasks automation on Oracle Cloud Commerce platform.",
   "license": "MIT",
   "repository": "github.com/objectedge/occ-tools",
