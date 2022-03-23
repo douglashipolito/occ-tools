@@ -25,7 +25,8 @@ function Bundler(options) {
 util.inherits(Bundler, EventEmitter);
 
 function loadWidgets(options, done) {
-  var basePath = path.join(appConfig.dir.project_root, 'widgets/**/*');
+  var enableReactRendering = true;
+  var basePath = path.join(appConfig.dir.project_root, '?(widgets|plugins)/**/*');
   var widgetsList = [];
   var widgetsByOptions = options.widgets ? options.widgets.split(',') : false;
 
@@ -41,6 +42,7 @@ function loadWidgets(options, done) {
         var widgetConfig = fs.readJsonSync(path.join(widgetPath, 'widget.json'));
         var widgetName = widgetConfig.widgetType || path.basename(widgetPath);
         var baseEntryPath = path.join(widgetPath, options.source);
+        var hasIndexFile = false;
 
         // Transpile only the widgets passed as option
         if (widgetsByOptions && widgetsByOptions.indexOf(widgetName) < 0) {
@@ -49,26 +51,48 @@ function loadWidgets(options, done) {
 
         try {
           fs.accessSync(baseEntryPath + '-src', fs.F_OK);
+          fs.accessSync(path.join(baseEntryPath, widgetConfig.javascript + '.js'), fs.F_OK);
           baseEntryPath = baseEntryPath + '-src';
         } catch (e) {
           winston.debug(e);
         }
 
+        try {
+          fs.accessSync(path.join(baseEntryPath, 'index.js'), fs.F_OK);
+          hasIndexFile = true;
+        } catch (e) {
+          winston.debug(e);
+        }
+
         var destinationDir = path.join(widgetPath, options.dest);
+        var entryPath = path.join(baseEntryPath, widgetMeta.ES6 && hasIndexFile ? 'index' : widgetConfig.javascript + '.js');
 
         widgetsList.push({
           name: widgetName,
           basePath: widgetPath,
           baseEntryPath: baseEntryPath,
-          entryPath: path.join(baseEntryPath, widgetMeta.ES6 ? 'index' : widgetConfig.javascript + '.js'),
+          entryPath: entryPath,
           destinationDir: destinationDir,
-          compiledFileName: path.join(destinationDir, options.compiledFileName || widgetConfig.javascript + '.js')
+          compiledFileName: path.join(destinationDir, options.compiledFileName || widgetConfig.javascript + '.js'),
+          widgetMeta: widgetMeta
         });
       } catch(err) {
         winston.debug(err);
       }
     })
     .on('end', function () {
+      if(enableReactRendering) {
+        var reactWidgets = widgetsList.filter(function (item) {
+          return item.widgetMeta.react;
+        });
+
+        widgetsList = widgetsList.filter(function (item) {
+          return !reactWidgets.some(function (reactWidget) {
+            return reactWidget.widgetName === item.widgetName && !item.widgetMeta.react;
+          });
+        });
+      }
+
       done(widgetsList);
     });
 }
