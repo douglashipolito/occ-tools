@@ -7,6 +7,7 @@ var isEmpty = require('lodash/isEmpty');
 var pick = require('lodash/pick');
 var config = require('../config');
 var uploadExtension = require('../extension/upload');
+var generateTheme = require('../theme/generate');
 var { getErrorFromRequest } = require('../utils');
 var { sanitizeElementizedLayout, replaceElementFragments, createElementsFromFragmentList } = require('./elements');
 var { updateTemplateSections } = require('./template');
@@ -295,8 +296,9 @@ module.exports = function (widgetType, backup, callback) {
 
     winston.info('Restoring instances LESS for widget %s', widgetType);
 
-    async.forEachSeries(
+    async.forEachLimit(
       backup.widgetIds,
+      4,
       function (widgetId, cbInstance) {
         var instanceId = instances[widgetId];
 
@@ -318,6 +320,25 @@ module.exports = function (widgetType, backup, callback) {
   }
 
   /**
+   * Generate OCC theme since we made changes
+   *
+   * @param {Function} next
+   */
+  var regenerateTheme = function (instances, callback) {
+    if (backup.widgetIds && backup.widgetIds.length) {
+      generateTheme.call(self, function (error) {
+        if (error) {
+          winston.warn('Unable to generate theme. Please generate theme manually');
+        }
+
+        callback(null, instances);
+      });
+    } else {
+      callback(null, instances);
+    }
+  }
+
+  /**
    * Restore widget locales
    *
    * @param {Array} instances The new widget instances
@@ -328,7 +349,7 @@ module.exports = function (widgetType, backup, callback) {
       var instanceId = instances[widgetId];
       var widgetLocales = backup.locales[widgetId];
 
-      async.forEachOfSeries(widgetLocales, function (localeResource, localeName, cbLocale) {
+      async.forEachOfLimit(widgetLocales, 4, function (localeResource, localeName, cbLocale) {
         var payload = pick(localeResource, 'custom');
 
         if (!payload || isEmpty(payload.custom)) {
@@ -582,6 +603,7 @@ module.exports = function (widgetType, backup, callback) {
     getGlobalInstance,
     restoreSiteAssociations,
     restoreInstanceLess,
+    regenerateTheme,
     restoreLocales,
     getWidgetConfigurations,
     restoreConfiguration,

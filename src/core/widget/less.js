@@ -4,6 +4,7 @@ var util = require('util');
 var fs = require('fs-extra');
 var async = require('async');
 var config = require('../config');
+var generateTheme = require('../theme/generate');
 var { getErrorFromRequest } = require('../utils');
 
 /**
@@ -119,8 +120,24 @@ function uploadLess(widgetInfo, callback) {
   }
 
   /**
+   * Generate OCC theme since we made changes
+   *
+   * @param {Function} next
+   */
+  function regenerateTheme(next) {
+    generateTheme.call(self, function (error) {
+      if (error) {
+        winston.warn('Unable to generate theme. Please generate theme manually');
+      }
+
+      next();
+    });
+  }
+
+  /**
    * Handle command upload command finish event
    * If some error occurs, run autoRestore if needed
+   *
    * @param {Error} error 
    */
   function onFinish(error) {
@@ -135,6 +152,7 @@ function uploadLess(widgetInfo, callback) {
   async.waterfall([
     uploadWidgetBaseLess,
     uploadWidgetInstancesLess,
+    regenerateTheme,
   ], onFinish);
 }
 

@@ -21,9 +21,10 @@ var _variablesFiles = path.join(_config.dir.project_root, 'less/variables/*.less
 var _additionalStylesFiles = path.join(_config.dir.project_root, 'less/additionalStyles/*.less');
 var _parsedCssDest = path.join(_config.dir.project_root, 'hologram', 'build');
 
-module.exports = function(callback, options) {
+module.exports = function(callback, options = {}) {
   var self = this;
   var httpAuth = null;
+  var siteId = options.site || 'siteUS';
 
   if(options.httpAuth) {
     var splitHttpAuth = options.httpAuth.split(':');
@@ -68,7 +69,7 @@ module.exports = function(callback, options) {
     },
     function(callback) {
       winston.info('Downloading parsed CSS...');
-      _downloadParsedCss.call(self, _parsedCssDest, callback, httpAuth, options.site);
+      _downloadParsedCss.call(self, _parsedCssDest, callback, httpAuth, siteId);
     },
   ], callback);
 };
