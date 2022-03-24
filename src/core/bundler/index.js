@@ -25,7 +25,7 @@ function Bundler(options) {
 util.inherits(Bundler, EventEmitter);
 
 function loadWidgets(options, done) {
-  var enableReactRendering = true;
+  var enableReactRendering = appConfig.react;
   var basePath = path.join(appConfig.dir.project_root, '?(widgets|plugins)/**/*');
   var widgetsList = [];
   var widgetsByOptions = options.widgets ? options.widgets.split(',') : false;

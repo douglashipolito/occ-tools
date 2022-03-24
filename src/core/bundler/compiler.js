@@ -213,8 +213,8 @@ Compiler.prototype.defineCompiler = function (done) {
           loader: 'babel-loader',
           query: {
             presets: [
-              path.join(self.configs.occToolsModulesPath, 'babel-preset-react'),
-              path.join(self.configs.occToolsModulesPath, 'babel-preset-es2015')
+              path.join(self.configs.occToolsModulesPath, 'babel-preset-es2015'),
+              path.join(self.configs.occToolsModulesPath, 'babel-preset-react')
             ],
             plugins: [
               path.join(self.configs.occToolsModulesPath, 'babel-plugin-transform-decorators-legacy'),

@@ -47,7 +47,8 @@ function OccTools(logger) {
       { names: ['totp-code', 'y'], type: 'string', help: 'It will force mfalogin with the provided Totp Code.' },
       { names: ['use-app-key', 'a'], type: 'bool', help: 'Forces the application key usage.' },
       { names: ['dev-mode', 'd'], type: 'bool', help: 'Dev Mode.' },
-      { names: ['site-id', 's'], type: 'string', help: 'The Site ID.' }
+      { names: ['site-id', 's'], type: 'string', help: 'The Site ID.' },
+      { names: ['react', 'r'], type: 'string', help: 'Enable React Application. Affects how the widgets are transpiled.' }
     ]
   });
 }
@@ -161,6 +162,10 @@ OccTools.prototype.init = async function (options, args, callback) {
         appConfig.useApplicationKey = true;
         appConfig.useMFALogin = false;
         appConfig.credentials = appConfig.loginCredentialsApplicationKey;
+      }
+
+      if (options.react) {
+        appConfig.react = true;
       }
 
       // Load Hooks for PRE event

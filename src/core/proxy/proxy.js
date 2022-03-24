@@ -152,7 +152,7 @@ Proxy.prototype.openBrowser = function () {
 Proxy.prototype.loadWidgets = function (done, options) {
   var proxyInstance = this;
 
-  var enableReactRendering = true;
+  var enableReactRendering = config.react;
   var basePath = path.join(config.dir.project_root, '?(widgets|plugins)/*/*');
   var widgetsList = [];
   var widgetsListOption = options.widgets ? options.widgets.split(',') : [];
