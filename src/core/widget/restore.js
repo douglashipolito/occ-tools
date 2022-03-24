@@ -7,11 +7,11 @@ var isEmpty = require('lodash/isEmpty');
 var pick = require('lodash/pick');
 var config = require('../config');
 var uploadExtension = require('../extension/upload');
-var generateTheme = require('../theme/generate');
+var getWidgetsInfo = require('./info');
 var { getErrorFromRequest } = require('../utils');
 var { sanitizeElementizedLayout, replaceElementFragments, createElementsFromFragmentList } = require('./elements');
 var { updateTemplateSections } = require('./template');
-var { uploadInstanceLess } = require('./less');
+var { uploadLess } = require('./less');
 
 /**
  * Replace the old widget IDs by the newly generated ones.
@@ -284,61 +284,6 @@ module.exports = function (widgetType, backup, callback) {
   };
 
   /**
-   * When creating an instance occ tools wrap instance css in an id
-   * So we are reuploading less to get rid of that id
-   *
-   * @param {Array} instances The new widget instances
-   * @param {Function} callback The callback function
-   */
-  var restoreInstanceLess = function (instances, callback) {
-    var lessFile = path.join(widgetFolder, 'less', 'widget.less');
-    var source = fs.readFileSync(lessFile, 'utf-8');
-
-    winston.info('Restoring instances LESS for widget %s', widgetType);
-
-    async.forEachLimit(
-      backup.widgetIds,
-      4,
-      function (widgetId, cbInstance) {
-        var instanceId = instances[widgetId];
-
-        uploadInstanceLess.call(self, instanceId, source, function (error) {
-          if (error) {
-            winston.warn('Unable to restore LESS for instance %s ', instanceId);
-          } else {
-            winston.info('Restored instance LESS for instance %s', instanceId);
-          }
-
-          cbInstance();
-        });
-      },
-      function () {
-        winston.info('Finished restoring instances LESS for widget %s', widgetType);
-        callback(null, instances);
-      }
-    );
-  }
-
-  /**
-   * Generate OCC theme since we made changes
-   *
-   * @param {Function} next
-   */
-  var regenerateTheme = function (instances, callback) {
-    if (backup.widgetIds && backup.widgetIds.length) {
-      generateTheme.call(self, function (error) {
-        if (error) {
-          winston.warn('Unable to generate theme. Please generate theme manually');
-        }
-
-        callback(null, instances);
-      });
-    } else {
-      callback(null, instances);
-    }
-  }
-
-  /**
    * Restore widget locales
    *
    * @param {Array} instances The new widget instances
@@ -435,7 +380,7 @@ module.exports = function (widgetType, backup, callback) {
     if (instances && configuration) {
       winston.info('Restoring widgets previous configurations');
 
-      async.forEach(backup.widgetIds, function (instanceId, cbInstance) {
+      async.forEachLimit(backup.widgetIds, 4, function (instanceId, cbInstance) {
         var settings = backup.settings[instanceId];
 
         if (settings && Object.keys(settings).length) {
@@ -474,7 +419,7 @@ module.exports = function (widgetType, backup, callback) {
                 util.format('Unable to restore widget configuration: %s', error)
               );
             } else {
-              winston.info('Widget %s successfully restored', instanceId);
+              winston.info('Widget %s configuration has been restored', instanceId);
               cbInstance();
             }
           });
@@ -589,11 +534,36 @@ module.exports = function (widgetType, backup, callback) {
           }
         );
       }, function (err) {
-        callback();
+        callback(null, instances);
       });
     } else {
-      callback();
+      callback(null, instances);
     }
+  }
+
+  /**
+   * When creating an instance occ tools wrap instance css in an id
+   * So we are reuploading less to get rid of that id
+   *
+   * @param {Array} instances The new widget instances
+   * @param {Function} callback The callback function
+   */
+  var restoreInstanceLess = function (instances, callback) {
+    winston.info('Restoring instances LESS for widget %s', widgetType);
+
+    getWidgetsInfo.call(self, widgetType, function (error, widgetsInfo) {
+      if (error) {
+        winston.info('Unable to retrieve widget information for %s. Skipping LESS restoration', widgetType);
+        return callback(null, instances);
+      }
+
+      async.forEachSeries(widgetsInfo, function(widgetInfo) {
+        uploadLess.call(self, widgetInfo, function (error) {
+          winston.info('Finished restoring instances LESS for widget %s', widgetType);
+          callback(null, instances);
+        });
+      });
+    });
   }
 
   async.waterfall([
@@ -602,12 +572,11 @@ module.exports = function (widgetType, backup, callback) {
     placeInstances,
     getGlobalInstance,
     restoreSiteAssociations,
-    restoreInstanceLess,
-    regenerateTheme,
     restoreLocales,
     getWidgetConfigurations,
     restoreConfiguration,
     getWidgetLayoutTemplate,
     restoreElementizedWidgetsLayout,
+    restoreInstanceLess,
   ], callback);
 };

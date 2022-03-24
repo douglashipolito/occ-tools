@@ -6,6 +6,7 @@ var async = require('async');
 var config = require('../config');
 var generateTheme = require('../theme/generate');
 var { getErrorFromRequest } = require('../utils');
+const { updateThemeCompilationSettings } = require('../theme/settings');
 
 /**
  * Updates widget base less content
@@ -90,11 +91,34 @@ function uploadLess(widgetInfo, callback) {
   }
 
   /**
+   * Disable automatic theme compilation temporarely
+   * So OCC does not recompile theme for every widget LESS uploaded
+   * this makes the command much more faster
+   *
+   * @param {Function} next 
+   */
+  var disableAutomaticThemeCompilation = function (next) {
+    if (!instances.length) return next();
+
+    winston.info('Disabling automatic theme compilation temporarily');
+
+    updateThemeCompilationSettings.call(self, { compileThemesAutomatically: false }, function (error) {
+      if (error) {
+        winston.warn('Unable to disable automatic theme compilation. Command will be slower');
+      }
+
+      next();
+    });
+  }
+
+  /**
    * Update widget instances less data
    *
    * @param {Function} next 
    */
   function uploadWidgetInstancesLess(next) {
+    if (!instances.length) return next();
+
     async.eachLimit(
       instances,
       4,
@@ -117,6 +141,25 @@ function uploadLess(widgetInfo, callback) {
         next();
       }
     );
+  }
+
+  /**
+   * Re-enable automatic compilation since we need this for manual changes
+   *
+   * @param {Function} next 
+   */
+  var enableAutomaticThemeCompilation = function (next) {
+    if (!instances.length) return next();
+
+    winston.info('Re-enabling automatic theme compilation');
+
+    updateThemeCompilationSettings.call(self, { compileThemesAutomatically: true }, function (error) {
+      if (error) {
+        winston.error('Unable to re-enable automatic theme compilation. Please re-enable it manually');
+      }
+
+      next();
+    });
   }
 
   /**
@@ -151,7 +194,9 @@ function uploadLess(widgetInfo, callback) {
 
   async.waterfall([
     uploadWidgetBaseLess,
+    disableAutomaticThemeCompilation,
     uploadWidgetInstancesLess,
+    enableAutomaticThemeCompilation,
     regenerateTheme,
   ], onFinish);
 }
