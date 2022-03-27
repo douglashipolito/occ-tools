@@ -1,4 +1,4 @@
-require(['jquery'], function ($) {
+require(['jquery', 'knockout'], function ($) {
   window.oe = window.oe || {
     ip: '#IP',
     occ: {

@@ -480,7 +480,8 @@ OCCProxy.prototype.transpileExtraRoute = function ({ source, fileSettings }, don
 
   var entryFile = source;
   var fileName = path.basename(entryFile);
-  var outputPath = path.join(config.dir.project_root, '.occ-transpiled', 'files');
+  var relativePathToFile = path.relative(config.dir.assetFilesPath, source);
+  var outputPath = path.join(config.dir.project_root, '.occ-transpiled', 'files', path.dirname(relativePathToFile));
   var outputFile = path.join(outputPath, fileName);
   var libraryTarget = fileSettings.libraryTarget ? fileSettings.libraryTarget : 'amd';
 

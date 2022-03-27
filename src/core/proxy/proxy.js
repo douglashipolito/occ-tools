@@ -181,7 +181,8 @@ Proxy.prototype.loadWidgets = function (done, options) {
           widgetPath: widgetPath,
           type: widgetType === 'components' ? 'widget' : widgetType,
           active: activeAllWidgets || widgetsListOption.indexOf(widgetName) > -1,
-          widgetMeta: widgetMeta
+          widgetMeta: widgetMeta,
+          widgetConfig: widgetConfig
         });
       } catch(err) {
         proxyInstance.proxyServer.log('The Widget ' + widgetPath + " doesn't have any widget.json file");

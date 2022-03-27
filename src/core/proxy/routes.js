@@ -19,6 +19,7 @@ var config = require('../config');
 var helpers = require('./helpers');
 var ExtensionCore = require('../extension');
 var mime = require('mime');
+var { generateFilePathMapping, resolveProjectFilesPaths, getFileSetting } = require('../files/utils');
 
 /**
  * Configurations
@@ -76,7 +77,6 @@ routes.mainHtmlPage = function () {
       widgetsData[widget.widgetName].activate = '#REMOVE_QUOTEfunction () { oe.tools.setWidgetState(this.widgetName, true)}#REMOVE_QUOTE';
       widgetsData[widget.widgetName].disable = '#REMOVE_QUOTEfunction () { oe.tools.setWidgetState(this.widgetName, false)}#REMOVE_QUOTE';
       widgetsData[widget.widgetName].locales = {};
-
       if(widget.active) {
         Object.keys(widget.widgetFiles.locales).forEach(function (localeKey) {
           var localePath = widget.widgetFiles.locales[localeKey];
@@ -89,6 +89,7 @@ routes.mainHtmlPage = function () {
 
     additionalContextInfoScript = additionalContextInfoScript.replace(/#WIDGETS/g, widgetsData);
 
+    $('head').prepend(`<script>${fs.readFileSync(path.join(__dirname, 'static_replaces', 'wait-for-render-complete.js'), 'utf8')}</script>`)
     $('body').append('<script>' + additionalContextInfoScript + '</script>');
     $('body').append('<script>' + fs.readFileSync(path.join(__dirname, 'static_replaces', 'refresh-admin-token.js'), 'utf8') + '</script>');
 
@@ -1071,6 +1072,33 @@ routes.styleguide = function () {
   });
 };
 
+function handleJsFileTranspilation (source, forceTranspile) {
+  var proxyInstance = this;
+
+  return new Promise(function (resolve) {
+    resolveProjectFilesPaths().then(function () {
+      var extension = path.extname(source);
+      var isJsFile = /\.js$/i.test(extension);
+      var fileSettings = getFileSetting(source);
+      var fileSettingsTranspileOption = typeof fileSettings.transpile !== 'undefined' ? fileSettings.transpile : true;
+      var transpileOption = typeof forceTranspile !== 'undefined' ? forceTranspile : fileSettingsTranspileOption;
+      var shouldTranspile = isJsFile && transpileOption;
+
+      if(!shouldTranspile) {
+        resolve(source);
+      } else {
+        proxyInstance.proxyServer.transpileExtraRoute({ source, fileSettings }, function (_err, fileCompiledPath) {
+          if(_err) {
+            winston.error(_err);
+          }
+
+          resolve(fileCompiledPath);
+        });
+      }
+    });
+  });
+};
+
 /**
 * Allows extra routes to proxy
 */
@@ -1154,7 +1182,10 @@ routes.extraRoutes = function () {
       }
     }
 
-    if(route.filePath) {
+    // If not file path, just return the route
+    if(!route.filePath) {
+      proxyInstance.proxyServer.setRoute(proxyOptions);;
+    } else {
       route.filePath = path.join(route.basePath || config.dir.project_root, route.filePath);
 
       if(route.isAbsolute) {
@@ -1167,51 +1198,29 @@ routes.extraRoutes = function () {
         winston.error('Error on loading file ' + route.filePath);
         return;
       }
-    }
 
-    var handleJsFileTranspilation = function (source) {
-      var extension = path.extname(source);
-      var isJsFile = /\.js$/i.test(extension);
-      var fileSettings = proxyInstance.proxyServer.getFileSetting(source);
-      var transpileOption = route.transpile || fileSettings.transpile || false;
-      var shouldTranspile = isJsFile && transpileOption;
-
-      return new Promise(function (resolve) {
-        if(!shouldTranspile) {
-          resolve (source)
-        } else {
-          proxyInstance.proxyServer.transpileExtraRoute({ source, fileSettings }, function (_err, fileCompiledPath) {
-            if(_err) {
-              winston.error(_err);
-            }
-
-            resolve(fileCompiledPath)
-          });
+      handleJsFileTranspilation.call(proxyInstance, route.filePath, route.transpile).then((source) => {
+        if(source && !route.process) {
+          proxyOptions.serveFile = source;
         }
+
+        if(!source && proxyOptions.type === 'replace' || (source && route.process)) {
+          proxyOptions.type = 'string';
+        }
+
+        if(!route.headers || (route.headers && !route.headers['content-type'])) {
+          var mimeType = mime.getType(source);
+
+          if(mimeType) {
+            proxyOptions.headerResponse = {
+              'content-type': mimeType
+            };
+          }
+        }
+
+        proxyInstance.proxyServer.setRoute(proxyOptions);
       });
-    };
-
-    handleJsFileTranspilation(route.filePath).then((source) => {
-      if(source && !route.process) {
-        proxyOptions.serveFile = source;
-      }
-
-      if(!source && proxyOptions.type === 'replace' || (source && route.process)) {
-        proxyOptions.type = 'string';
-      }
-
-      if(!route.headers || (route.headers && !route.headers['content-type'])) {
-        var mimeType = mime.getType(source);
-
-        if(mimeType) {
-          proxyOptions.headerResponse = {
-            'content-type': mimeType
-          };
-        }
-      }
-
-      proxyInstance.proxyServer.setRoute(proxyOptions);
-    });
+    }
   });
 };
 
@@ -1226,4 +1235,64 @@ routes.proxyPacFile = function () {
     hostname: /.*/
   });
 };
+
+
+/**
+ * Set a route to replace remote files by local
+ */
+routes.allJsFiles = function () {
+  var proxyInstance = this;
+  var extraRoutes = [];
+  var allJsFiles = [];
+  var extraRoutesPath = proxyInstance.options.extraRoutes;
+
+  try {
+    extraRoutes = require(extraRoutesPath);
+  } catch(error) { }
+
+  glob(path.join(config.dir.assetFilesPath, '**', '*.js'))
+    .on('match', function (jsFilePath) {
+      allJsFiles.push(jsFilePath)
+    })
+    .on('end', function () {
+        allJsFiles = allJsFiles.filter(function(filePath) {
+          return !extraRoutes.some(function (extraRoute) {
+            if(!extraRoute.filePath) {
+              return false;
+            }
+
+            return filePath === extraRoute.filePath;
+          });
+        });
+
+        allJsFiles.forEach(function (jsFilePath) {
+          var fileData = generateFilePathMapping(jsFilePath);
+
+          handleJsFileTranspilation.call(proxyInstance, jsFilePath).then(function(fileSourcePath) {
+            proxyInstance.proxyServer.setRoute({
+              url: fileData.remotePath,
+              phase: 'request',
+              logs: false,
+              method: 'GET',
+              as: 'buffer',
+              callback: function(_req, resp) {
+                var contentType = 'application/javascript';
+
+                try {
+                  resp.statusCode = 200;
+                  resp.headers['content-type'] = contentType;
+                  resp.buffer = fs.readFileSync(fileSourcePath);
+                } catch(e) {
+                  resp.statusCode = 404;
+                  resp.headers['content-type'] = contentType;
+                  resp.buffer = Buffer.from('Error on requesting the file ' + fileSourcePath , 'utf8');
+                  return;
+                }
+              }
+            });
+          })
+        });
+    });
+};
+
 module.exports = routes;

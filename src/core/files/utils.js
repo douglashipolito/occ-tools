@@ -6,19 +6,38 @@ var _config = require('../config');
 var projectSettingsFiles = _config.projectSettings['files-config'] || [];
 
 const getFilesPromisified = util.promisify(getFiles);
+let projectSettingsFilesResolvingFiles = false;
+
+const waitUntil = (delay, condition) => new Promise(resolve => {
+  const intervalId = setInterval(() => {
+    if(condition()) {
+      clearInterval(intervalId);
+      resolve();
+    }
+  }, delay);
+});
 
 async function resolveProjectFilesPaths(callback) {
   callback = callback || function () {};
-  try {
-    for(const file of projectSettingsFiles) {
-      const foundFiles = await getFilesPromisified(file.path);
-      file.foundFiles = foundFiles;
-    }
 
-    callback(null);
-  } catch(error) {
-    callback(error);
-    throw new Error(error);
+  if(projectSettingsFilesResolvingFiles) {
+    await waitUntil(150, () => !!projectSettingsFiles.resolveProjectFilesPaths);
+    return callback(null);
+  } else {
+    try {
+      projectSettingsFilesResolvingFiles = true;
+
+      for(const file of projectSettingsFiles) {
+        const foundFiles = await getFilesPromisified(file.path);
+        file.foundFiles = foundFiles;
+      }
+
+      projectSettingsFiles.resolveProjectFilesPaths = true;
+      callback(null);
+    } catch(error) {
+      callback(error);
+      throw new Error(error);
+    }
   }
 }
 
@@ -89,7 +108,8 @@ function generateFilePathMapping(filePath, settingsFolder) {
     filePath,
     folder,
     thirdparty,
-    remote
+    remote,
+    remotePath
   }
 }
 
