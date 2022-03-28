@@ -51,7 +51,10 @@ var _config = require('../config');
           _config.dir.project_root
         ],
         query: {
-          presets: [path.join(occToolsModulesPath, 'babel-preset-es2015')],
+          presets: [
+            path.join(occToolsModulesPath, 'babel-preset-es2015'),
+            path.join(occToolsModulesPath, 'babel-preset-react')
+          ],
           plugins: [
             path.join(occToolsModulesPath, 'babel-plugin-transform-decorators-legacy'),
             path.join(occToolsModulesPath, 'babel-plugin-transform-class-properties'),

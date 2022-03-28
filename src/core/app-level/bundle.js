@@ -114,7 +114,10 @@ function jsBundle(options, done) {
           path.join(options.dir, options.name)
         ],
         query: {
-          presets: [path.join(occToolsModulesPath, 'babel-preset-es2015')],
+          presets: [
+            path.join(occToolsModulesPath, 'babel-preset-es2015'),
+            path.join(occToolsModulesPath, 'babel-preset-react')
+          ],
           plugins: [
             path.join(occToolsModulesPath, 'babel-plugin-transform-decorators-legacy'),
             path.join(occToolsModulesPath, 'babel-plugin-transform-class-properties'),

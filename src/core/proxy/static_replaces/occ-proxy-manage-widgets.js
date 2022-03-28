@@ -1,7 +1,7 @@
 (function () {
   var getWidgetName = function (widget) {
     var widgetId = widget.widgetId();
-    
+
     if(widgetId) {
       widgetId = widgetId.replace(/(.*)?_v[0-9]+$/, '$1');
     }
@@ -75,7 +75,7 @@
 
     return false;
   };
-  
+
   var getElements = function (widget, region) {
     var widgetName = getWidgetName(widget, region);
     var elements = null;
@@ -83,7 +83,7 @@
     if(!widgetName) {
       return;
     }
-    
+
     elements = this.data.elements[widgetName];
 
     if(elements) {
@@ -101,17 +101,17 @@
 
   var checkElements = function (widget, region) {
     var widgetName = getWidgetName(widget, region);
-    
+
     if(!widgetName) {
       return;
     }
-    
+
     return !!this.data.elements[widgetName];
   };
 
   var isOracleWidget = function(widget) {
     var widgetName = getWidgetName(widget);
-    
+
     if(!widgetName) {
       return true;
     }

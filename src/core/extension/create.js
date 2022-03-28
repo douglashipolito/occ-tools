@@ -19,6 +19,7 @@ function newApplication({ name, occ } , callback) {
       'name': name
     }
   };
+
   occ.request(options, function (error, response) {
     if (error || response.errorCode) callback(error || response.message);
     winston.info('New extension ID geneated %s', response.repositoryId);
@@ -30,7 +31,7 @@ function createExtensionIfNecessary({ application, extensionName }, callback) {
   var self = this;
 
   if (!application) {
-    newApplication({ extensionName, occ: self._occ }, callback);
+    newApplication({ name: extensionName, occ: self._occ }, callback);
   } else {
     callback(null, application.repositoryId);
   }

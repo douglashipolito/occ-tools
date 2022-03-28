@@ -5,7 +5,7 @@ var async = require('async');
 
 /**
  * Get the application information
- * 
+ *
  * @param {string} extensionName The extension name
  * @param {request} occ The OCC requester
  * @param {function} callback The callback function
@@ -31,7 +31,7 @@ var getApplication = function (extensionName, occ, callback) {
 
 /**
  * Get the extension information
- * 
+ *
  * @param {string} extensionName The extension name
  * @param {request} occ The OCC requester
  * @param {object} application The application information
@@ -61,10 +61,10 @@ var getExtension = function (extensionName, occ, application, callback) {
 
 /**
  * Get application and extension information
- * 
+ *
  * @param {string} extensionName The extension name
  * @param {request} occ The OCC requester
- * @param {function} callback The callback function, 
+ * @param {function} callback The callback function,
  * will return application and extension as parameter
  */
 module.exports = function (extensionName, occ, callback) {

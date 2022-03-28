@@ -1,18 +1,20 @@
 var util = require('util');
 var winston = require('winston');
 var async = require('async');
+var settings = require('./settings');
 var { getErrorFromRequest } = require('../utils');
 
 module.exports = function (widgetId, callback) {
   var self = this;
   var occ = self._occ;
   var widgetsInfo = [];
+
   async.eachSeries(
-    Object.keys(self._settings.folders),
+    Object.keys(settings.folders),
     function (folder, cbFolder) {
       winston.info('Fetching widgets info from %s folder...', folder);
 
-      var infoUrl = util.format('widgetDescriptors/instances?source=%s', self._settings.folders[folder].source);
+      var infoUrl = util.format('widgetDescriptors/instances?source=%s', settings.folders[folder].source);
 
       occ.request(infoUrl, function(err, data) {
         var error = getErrorFromRequest(err, data);

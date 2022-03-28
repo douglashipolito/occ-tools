@@ -11,18 +11,7 @@ var _upload = require('./upload');
 var _generate = require('./generate');
 var _info = require('./info');
 var _backup = require('./backup');
-
-var _settings = {
-  env: 'adminUI',
-  folders: {
-    oracle: {
-      source: '100'
-    },
-    objectedge: {
-      source: '101'
-    }
-  }
-};
+var _settings = require('./settings');
 
 function Widget() {
   EventEmitter.call(this);
