@@ -6,6 +6,7 @@ This project must adhere to [this](https://github.com/olivierlacan/keep-a-change
 
 ### Fixed 
 - Issue in the `upgrade config` command. It was not creating the application
+- Issue when uploading Less. OCC by default, always transpile the Theme and it makes the upload really slow. Some logic was added to prevent this when uploading a Less file.
 
 ### Added
 - Support to auto proxy all JS files and transpile them. It will also take into account the configurations available in the `occ-tools.project` and `proxy-routes`
