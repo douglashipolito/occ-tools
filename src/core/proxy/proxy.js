@@ -128,12 +128,12 @@ Proxy.prototype.openBrowser = function () {
     launcher.on('complete', function(message) {
       proxyInstance.proxyServer.log(message);
     });
-  
+
     launcher.on('error', function(err) {
       proxyInstance.proxyServer.log('[browser:error]', err);
     });
-  
-    launcher.launch(); 
+
+    launcher.launch();
   } else {
     var currentEnvironment = config.environments.find(function (environment) {
       return environment.name === proxyInstance.options.environment.current;
@@ -152,7 +152,8 @@ Proxy.prototype.openBrowser = function () {
 Proxy.prototype.loadWidgets = function (done, options) {
   var proxyInstance = this;
 
-  var basePath = path.join(config.dir.project_root, 'widgets/*/*');
+  var enableReactRendering = config.react;
+  var basePath = path.join(config.dir.project_root, '?(widgets|plugins)/*/*');
   var widgetsList = [];
   var widgetsListOption = options.widgets ? options.widgets.split(',') : [];
   var activeAllWidgets = widgetsListOption[0] === '*';
@@ -171,20 +172,35 @@ Proxy.prototype.loadWidgets = function (done, options) {
           widgetMeta = fs.readJsonSync(widgetMetaFilePath);
         } catch (e) { }
 
+        var widgetType = path.basename(path.resolve(widgetPath, '..'));
+
         widgetsList.push({
           regionName: null,
           extensionName: widgetName,
           widgetName: widgetName,
           widgetPath: widgetPath,
-          type: path.basename(path.resolve(widgetPath, '..')),
+          type: widgetType === 'components' ? 'widget' : widgetType,
           active: activeAllWidgets || widgetsListOption.indexOf(widgetName) > -1,
-          widgetMeta: widgetMeta
+          widgetMeta: widgetMeta,
+          widgetConfig: widgetConfig
         });
       } catch(err) {
         proxyInstance.proxyServer.log('The Widget ' + widgetPath + " doesn't have any widget.json file");
       }
     })
     .on('end', function () {
+      if(enableReactRendering) {
+        var reactWidgets = widgetsList.filter(function (item) {
+          return item.widgetMeta.react;
+        });
+
+        widgetsList = widgetsList.filter(function (item) {
+          return !reactWidgets.some(function (reactWidget) {
+            return reactWidget.widgetName === item.widgetName && !item.widgetMeta.react;
+          });
+        });
+      }
+
       done.call(proxyInstance, widgetsList);
     });
 };
