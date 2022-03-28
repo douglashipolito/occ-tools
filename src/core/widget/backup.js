@@ -177,17 +177,18 @@ var getWidgetsLocales = function (widgetType, occ, widgetInformation, callback) 
     winston.info('Success requesting available OCC locales');
     winston.debug(JSON.stringify(availableLocales, null, 2));
 
-    async.forEach(
+    async.forEachSeries(
       widgetInformation.widgetIds,
       function (widgetId, cbInstance) {
         locales[widgetId] = {};
 
-        async.forEach(
+        async.forEachLimit(
           availableLocales,
+          4,
           function (availableLocale, cbLocale) {
             var localeName = availableLocale.name;
 
-            winston.info('Requesting "%s" locale information for widget instance %s', localeName, widgetId);
+            winston.debug('Requesting "%s" locale information for widget instance %s', localeName, widgetId);
 
             occ.request({
               api: util.format('/widgets/%s/locale/%s', widgetId, localeName),
