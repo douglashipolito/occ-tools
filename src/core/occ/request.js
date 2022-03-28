@@ -225,7 +225,7 @@ function tryToRequest(config, token, fileToken, maxAttempts, callback) {
       return attempts < maxAttempts;
     },
     function(callback) {
-      if(tokenIsValid) {
+      if(tokenIsValid && token) {
         isPublishRunning.call(self, config, token, fileToken, setWorkset.bind(self, proceedWithRequest), callback);
       } else {
         proceedWithRequest(config, null, callback);
