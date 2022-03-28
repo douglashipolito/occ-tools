@@ -95,7 +95,9 @@ function generateBundleTempFile({ source, fileSettings }, callback) {
   var fileName = path.basename(source);
   var extension = path.extname(source);
   // Generate temp file
-  var tempFileDir = path.join(os.tmpdir(), 'occ-tools-files');
+
+  var relativePathToFile = path.relative(_config.dir.assetFilesPath, source);
+  var tempFileDir = path.join(os.tmpdir(), 'occ-tools-files', path.dirname(relativePathToFile));
   var tempFilePath = path.join(tempFileDir, fileName);
 
   // Process file
