@@ -290,7 +290,8 @@ OCCProxy.prototype.getTopBannerFileContent = function () {
 }
 
 OCCProxy.prototype.getFileSetting = function (source) {
-  return projectSettingsFiles.find(file => path.join(config.dir.project_root, file.path) === source) || {};
+  const normalizedSource = path.normalize(source).replace(/[\\]{1,2}/g, '/');
+  return projectSettingsFiles.find(file => path.join(config.dir.project_root, file.path) === normalizedSource) || {};
 }
 
 function bundleAppLevel(appLevelPath, appLevelName, done) {
