@@ -42,8 +42,9 @@ async function resolveProjectFilesPaths(callback) {
 }
 
 function getFileSetting(source) {
+  const normalizedSource = path.normalize(source).replace(/[\\]{1,2}/g, '/');
   return projectSettingsFiles.find(file => {
-    return file.foundFiles.includes(path.normalize(source));
+    return file.foundFiles.includes(normalizedSource);
   })
   || {};
 };
