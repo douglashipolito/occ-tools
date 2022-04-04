@@ -1,6 +1,0 @@
-version: '3.3'
-
-services:
-  slave-occ-deploy:
-    build: .
-    image: docker.mot-solutions.com/msi/digital/slave-occ-deploy

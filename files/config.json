@@ -1,12 +1,12 @@
 {
   "projects": {
-    "base-path": "/home/jenkins/workspace",
+    "base-path": "{path}",
     "storefront-dir": "storefront",
     "current": {
-      "path": "/home/jenkins/workspace/occ-deploy",
+      "path": "{path}",
       "name": "occ-deploy",
       "env": "c2tst",
-      "url": "https://p1747239c2tst-admin.occa.ocs.oraclecloud.com",
+      "url": "https://{env}",
       "credentials": {
         "username": "dummy-user",
         "password": "dummy-password",
@@ -14,7 +14,7 @@
       },
       "theme": {
         "id": "100001",
-        "name": "Motorola"
+        "name": "theme"
       },
       "defaultLocale": "en",
       "locales": [
