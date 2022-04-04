@@ -34,6 +34,7 @@ var Environment = require('../core/env');
 var PageTags = require('./PageTags');
 var Hooks = require('../core/hooks');
 var Worksets = require('./Worksets');
+const Bulk = require('./Bulk');
 
 function OccTools(logger) {
   this.logger = logger;
@@ -263,7 +264,11 @@ OccTools.prototype.do_user_commands = UserCommands;
 OccTools.prototype.do_compile = Compile;
 OccTools.prototype.do_configs = Configs;
 OccTools.prototype.do_restart = Restart;
+<<<<<<< HEAD
 OccTools.prototype.do_page_tags = PageTags;
 OccTools.prototype.do_worksets = Worksets;
+=======
+OccTools.prototype.do_bulk = Bulk;
+>>>>>>> 9be375e85218bd00ed3c254ff4b831e6b2dd0eb4
 
 module.exports = OccTools;

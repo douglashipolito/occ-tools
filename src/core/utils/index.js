@@ -4,6 +4,7 @@ const compareObjects = require('./compareObjects');
 const constants = require('./constants');
 const readJsonFile = require('./readJsonFile');
 const getErrorFromRequest = require('./getErrorFromRequest');
+const formatDuration = require('./formatDuration');
 
 module.exports = {
   arrayToMap,
@@ -14,4 +15,6 @@ module.exports = {
   constants,
   readJsonFile,
   getErrorFromRequest,
+  sleep: ms => new Promise(resolve => setTimeout(resolve, ms)),
+  formatDuration
 };

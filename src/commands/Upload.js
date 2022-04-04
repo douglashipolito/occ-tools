@@ -160,7 +160,8 @@ Upload.prototype.do_sse = function(subcmd, opts, args, callback){
 Upload.prototype.do_sse.help = (
   'Upload a server-side extension to OCC.\n\n' +
   'Usage:\n' +
-  '     {{name}} {{cmd}} <sse-name>'
+  '     {{name}} {{cmd}} <sse-name>' +
+  '{{options}}'
 );
 
 Upload.prototype.do_sse.options = [

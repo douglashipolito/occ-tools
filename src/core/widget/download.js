@@ -24,9 +24,14 @@ const downloadTemplate = async (occ, widgetInfo, settings) => {
   const templateFilePath = path.join(templateDir, 'display.template');
   const describeCodePath =`widgets/${widgetInfo.item.instances[0].id}/code`;
 
-  const file = await occ.promisedRequest(describeCodePath);
-  winston.debug('Writing %s template in %s', widgetInfo.item.widgetType, templateDir);
-  fs.outputFileSync(templateFilePath, file.source);
+  try {
+    const file = await occ.promisedRequest(describeCodePath);
+    winston.debug('Writing %s template in %s', widgetInfo.item.widgetType, templateDir);
+    fs.outputFileSync(templateFilePath, file.source);
+  } catch (e) {
+    winston.error('Error downloading the template for %s', widgetInfo.item.widgetType);
+  }
+
 };
 
 /**
@@ -53,7 +58,7 @@ const downloadLess = async (occ, widgetInfo, settings) => {
  * @param  {Object} settings   The setting object.
  */
 const downloadAllJs = async (occ, widgetInfo, settings) => {
-  if (widgetInfo.folder === 'oracle') return;
+  if (widgetInfo.folder === 'oracle' || !widgetInfo.item.jsEditable) return;
   winston.info('Downloading %s js files...', widgetInfo.item.widgetType);
   const describeJsPath = `widgetDescriptors/${widgetInfo.item.id}/javascript`;
   var jsPath = path.join(getWidgetPath(settings, widgetInfo), 'js');
@@ -139,14 +144,18 @@ const downloadLocales = (occ, widgetInfo, settings) => {
         'X-CCAsset-Language': locale,
       },
     };
-    const data = await occ.promisedRequest(options);
-    const localePath = path.join(localesPath, locale, `ns.${widgetInfo.item.i18nresources}.json`);
 
-    if (!data) {
+    try {
+      const data = await occ.promisedRequest(options);
+      const localePath = path.join(localesPath, locale, `ns.${widgetInfo.item.i18nresources}.json`);
+      if (!data) {
+        winston.warn(`Locale ${locale} not find for widget ${widget}`);
+      } else {
+        const localeJson = JSON.stringify(data.localeData, null, 2);
+        fs.outputFileSync(localePath, localeJson);
+      }
+    } catch (e) {
       winston.warn(`Locale ${locale} not find for widget ${widget}`);
-    } else {
-      const localeJson = JSON.stringify(data.localeData, null, 2);
-      fs.outputFileSync(localePath, localeJson);
     }
   });
 
@@ -162,14 +171,18 @@ const downloadConfigLocales = async (occ, widget, widgetId, configPath, settings
         'X-CCAsset-Language': locale,
       },
     };
-    const data = await occ.promisedRequest(options);
-    const localePath = path.join(configPath, 'locales', `${locale}.json`);
+    try {
+      const data = await occ.promisedRequest(options);
+      const localePath = path.join(configPath, 'locales', `${locale}.json`);
 
-    if (!data) {
+      if (!data) {
+        winston.warn(`Config locale ${locale} not find for widget ${widget}`);
+      } else {
+        const localeJson = JSON.stringify(data.localeData, null, 2);
+        fs.outputFileSync(localePath, localeJson);
+      }
+    } catch (e) {
       winston.warn(`Config locale ${locale} not find for widget ${widget}`);
-    } else {
-      const localeJson = JSON.stringify(data.localeData, null, 2);
-      fs.outputFileSync(localePath, localeJson);
     }
   });
 
@@ -183,7 +196,7 @@ const downloadConfigLocales = async (occ, widget, widgetId, configPath, settings
  * @param  {Object} settings   The setting object.
  */
 const downloadConfig = async (occ, widgetInfo, settings) => {
-  if (widgetInfo.folder === 'oracle') return;
+  if (widgetInfo.folder === 'oracle' || !widgetInfo.configurable) return;
   const widget = widgetInfo.item.widgetType;
   const widgetId =  widgetInfo.item.repositoryId;
   const configUrl = `widgetDescriptors/${widgetId}/metadata/config`;
